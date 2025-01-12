@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:17.2
+    ports:
+      - "9731:5432"
+    environment:
+      POSTGRES_USER: tokpok
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mvp
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
