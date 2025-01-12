@@ -2,76 +2,62 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"gitlab.com/tokpok/mvp/config"
-	"time"
 )
 
-type PostgresConnection struct {
-	Pool       *pgxpool.Pool
+type PostgresConn interface {
+	Pool() *pgxpool.Pool
+	QueryBuilder() squirrel.StatementBuilderType
+}
+
+type postgresConn struct {
+	PgxPool    *pgxpool.Pool
 	SQLBuilder squirrel.StatementBuilderType
 }
 
-type PostgresOptions struct {
-	MaxPoolSize        int32
-	ConnectionAttempts int
-	RetryTimeout       time.Duration
+func (c *postgresConn) Pool() *pgxpool.Pool {
+	return c.PgxPool
 }
 
-const (
-	defaultMaxPoolSize        = 10
-	defaultConnectionAttempts = 5
-	defaultRetryTimeout       = 5 * time.Second
-)
-
-func applyDefaults(opts PostgresOptions) {
-	if opts.MaxPoolSize == 0 {
-		opts.MaxPoolSize = defaultMaxPoolSize
-	}
-	if opts.ConnectionAttempts == 0 {
-		opts.ConnectionAttempts = defaultConnectionAttempts
-	}
-	if opts.RetryTimeout == 0 {
-		opts.RetryTimeout = defaultRetryTimeout
-	}
+func (c *postgresConn) QueryBuilder() squirrel.StatementBuilderType {
+	return c.SQLBuilder
 }
 
-func getConnectionString(postgresConfig *config.PostgresConfig) string {
-	return fmt.Sprintf("postgresql://%s:%s@%s:%d/%s",
-		postgresConfig.User,
-		postgresConfig.Password,
-		postgresConfig.Host,
-		postgresConfig.Port,
-		postgresConfig.Database,
-	)
+func MustNewPostgresConnection(dsn string, options ...PostgresOption) PostgresConn {
+	c, err := NewPostgresConnection(dsn, options...)
+	if err != nil {
+		panic(err)
+	}
+	return c
 }
 
-func NewPostgresConnection(cfg *config.Config, options PostgresOptions) (*PostgresConnection, error) {
-	pgc := &PostgresConnection{
+func NewPostgresConnection(dsn string, options ...PostgresOption) (PostgresConn, error) {
+	pgc := &postgresConn{
 		SQLBuilder: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
 	}
 
-	dsn := getConnectionString(cfg.Postgres)
 	dbConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	applyDefaults(options)
-	dbConfig.MaxConns = options.MaxPoolSize
+	for _, opt := range options {
+		opt(dbConfig)
+	}
 
-	for c := options.ConnectionAttempts; c > 0; c-- {
-		pgc.Pool, err = pgxpool.NewWithConfig(context.Background(), dbConfig)
-		if err == nil {
-			return pgc, nil
-		}
-
-		if c > 1 {
-			time.Sleep(options.RetryTimeout)
-		}
+	pgc.PgxPool, err = pgxpool.NewWithConfig(context.Background(), dbConfig)
+	if err == nil {
+		return pgc, nil
 	}
 
 	return nil, err
+}
+
+type PostgresOption func(*pgxpool.Config)
+
+func WithMaxConns(maxConns int32) PostgresOption {
+	return func(config *pgxpool.Config) {
+		config.MaxConns = maxConns
+	}
 }

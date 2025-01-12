@@ -1,4 +1,4 @@
-# MVP
+# MVP (Admin Gateway in later versions)
 
 MVP Backend for my boring project
 
@@ -7,13 +7,6 @@ MVP Backend for my boring project
 - Enable user authentication through Google login.
 - Library features (shared learning resources, and lifelike tables)
 - Real-time search
-
-## Potential Features
-
-- Short videos (Tiktok, Reels)
-- My own videos/songs platform
-- Dating features
-- Video calling (WebRTC)
 
 ## References
 

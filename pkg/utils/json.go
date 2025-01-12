@@ -1,4 +1,4 @@
-package httpclient
+package utils
 
 import (
 	"encoding/json"
@@ -8,10 +8,9 @@ import (
 )
 
 type ErrorResponse struct {
-	Code    uint8          `json:"code"`
-	Error   bool           `json:"error"`
-	Message string         `json:"message"`
-	Details map[string]any `json:"details,omitempty"`
+	StatusCode int            `json:"status_code"`
+	Message    string         `json:"message"`
+	Details    map[string]any `json:"details,omitempty"`
 }
 
 func ReadJSON(w http.ResponseWriter, r *http.Request, data any) error {
@@ -47,6 +46,10 @@ func WriteJSON(w http.ResponseWriter, r *http.Request, status int, data any, hea
 	return err
 }
 
-func ErrorJSON(w http.ResponseWriter, r *http.Request, err ErrorResponse) error {
-	return nil
+func ErrorJSON(w http.ResponseWriter, r *http.Request, data *ErrorResponse) error {
+	if data.StatusCode == 0 {
+		data.StatusCode = http.StatusInternalServerError
+	}
+	err := WriteJSON(w, r, data.StatusCode, data)
+	return err
 }

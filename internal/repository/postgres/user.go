@@ -3,38 +3,43 @@ package postgresrepo
 import (
 	"context"
 	"github.com/Masterminds/squirrel"
-	"gitlab.com/tokpok/mvp/internal/domain"
-	"gitlab.com/tokpok/mvp/pkg/db"
+	"gitlab.com/gookie/mvp/internal/domain"
+	"gitlab.com/gookie/mvp/pkg/db"
 )
 
 type UserRepository struct {
-	*db.PostgresConnection
+	db.PostgresConn
 }
 
-func NewUserRepository(conn *db.PostgresConnection) *UserRepository {
+func NewUserRepository(conn db.PostgresConn) *UserRepository {
 	return &UserRepository{conn}
 }
 
 func (r *UserRepository) Exists(ctx context.Context, colName string, val any) (bool, error) {
-	return exists(r.PostgresConnection, ctx, domain.TableUser, colName, val)
+	return exists(r.PostgresConn, ctx, domain.TableUser, colName, val)
 }
 
-func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
-	query, args, err := r.SQLBuilder.
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+	query, args, err := r.QueryBuilder().
 		Select(domain.UserPublicCol...).
 		From(domain.TableUser).
-		Where(squirrel.Eq{domain.ColEmail: email}).
+		Where(squirrel.Eq{domain.ColUserEmail: email}).
 		ToSql()
 	if err != nil {
 		return nil, err
 	}
 
 	var user domain.User
-	err = r.Pool.QueryRow(ctx, query, args...).Scan(
-		&user.UserID,
-		&user.Username,
-		&user.FullName,
+	err = r.Pool().QueryRow(ctx, query, args...).Scan(
+		&user.ID,
+		&user.DisplayName,
 		&user.Email,
+		&user.EmailVerified,
+		&user.AvatarURL,
+		&user.PreferredLanguage,
+		&user.Active,
+		&user.CreatedAt,
+		&user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err

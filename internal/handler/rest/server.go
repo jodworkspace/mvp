@@ -2,9 +2,9 @@ package rest
 
 import (
 	"fmt"
-	"gitlab.com/tokpok/mvp/config"
-	"gitlab.com/tokpok/mvp/pkg/db"
-	"gitlab.com/tokpok/mvp/pkg/logger"
+	"gitlab.com/gookie/mvp/config"
+	"gitlab.com/gookie/mvp/pkg/db"
+	"gitlab.com/gookie/mvp/pkg/logger"
 	"log"
 	"net/http"
 	"os"
@@ -13,13 +13,13 @@ import (
 
 type Server struct {
 	cfg    *config.Config
-	db     *db.PostgresConnection
+	db     db.PostgresConn
 	logger *logger.ZapLogger
 }
 
 func NewServer(
 	cfg *config.Config,
-	db *db.PostgresConnection,
+	db db.PostgresConn,
 	logger *logger.ZapLogger,
 ) *Server {
 	return &Server{

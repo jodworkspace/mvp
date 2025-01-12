@@ -1,9 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 	"log"
+	"time"
 )
 
 func NewConfig(envFiles ...string) *Config {
@@ -22,22 +24,42 @@ func NewConfig(envFiles ...string) *Config {
 
 type Config struct {
 	Server      *ServerConfig
+	JWT         *JWTConfig
 	Logger      *LoggerConfig
+	HTTPClient  *HTTPClientConfig
 	GoogleOAuth *GoogleOAuthConfig
-	Postgres    *PostgresConfig
 	Redis       *RedisConfig
+	Postgres    *PostgresConfig
 }
 
 type ServerConfig struct {
-	Version   string `envconfig:"version" default:"0.0.1"`
-	Host      string `envconfig:"host" default:"localhost"`
-	Port      string `envconfig:"port" default:"9731"`
-	JWTSecret string `envconfig:"jwt_secret"`
+	Version string `envconfig:"version" default:"0.0.1"`
+	Host    string `envconfig:"host" default:"localhost"`
+	Port    string `envconfig:"port" default:"9731"`
+}
+
+type HTTPClientConfig struct {
+}
+
+type JWTConfig struct {
+	Secret string        `envconfig:"jwt_secret"`
+	Expiry time.Duration `envconfig:"jwt_expire" default:"3600s"`
 }
 
 type LoggerConfig struct {
 	Level   string `envconfig:"log_level" default:"info"`
 	Request bool   `envconfig:"log_request" default:"true"`
+}
+
+type GoogleOAuthConfig struct {
+	ClientID      string `envconfig:"google_client_id"`
+	ClientSecret  string `envconfig:"google_client_secret"`
+	TokenEndpoint string `envconfig:"google_token_endpoint"`
+}
+
+type RedisConfig struct {
+	Host string `envconfig:"redis_host" default:"localhost"`
+	Port uint16 `envconfig:"redis_port" default:"6379"`
 }
 
 type PostgresConfig struct {
@@ -49,13 +71,12 @@ type PostgresConfig struct {
 	Params   map[string]string
 }
 
-type RedisConfig struct {
-	Host string `envconfig:"redis_host" default:"localhost"`
-	Port uint16 `envconfig:"redis_port" default:"6379"`
-}
-
-type GoogleOAuthConfig struct {
-	ClientID     string `envconfig:"client_id"`
-	ClientSecret string `envconfig:"client_secret"`
-	RedirectURI  string `envconfig:"redirect_uri"`
+func (c *PostgresConfig) DSN(opts ...map[string]string) string {
+	return fmt.Sprintf("postgresql://%s:%s@%s:%d/%s",
+		c.User,
+		c.Password,
+		c.Host,
+		c.Port,
+		c.Database,
+	)
 }

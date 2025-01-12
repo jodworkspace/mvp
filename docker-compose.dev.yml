@@ -1,14 +1,16 @@
 services:
   postgres:
     image: postgres:17.2
+    container_name: gookie-pg
     ports:
       - "9731:5432"
     environment:
-      POSTGRES_USER: tokpok
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: mvp
+      POSTGRES_DB: gookie
 
   redis:
     image: redis:latest
+    container_name: gookie-redis
     ports:
       - "6379:6379"

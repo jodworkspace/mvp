@@ -2,9 +2,9 @@ package useruc
 
 import (
 	"context"
-	"gitlab.com/tokpok/mvp/internal/domain"
-	postgresrepo "gitlab.com/tokpok/mvp/internal/repository/postgres"
-	"gitlab.com/tokpok/mvp/pkg/logger"
+	"gitlab.com/gookie/mvp/internal/domain"
+	postgresrepo "gitlab.com/gookie/mvp/internal/repository/postgres"
+	"gitlab.com/gookie/mvp/pkg/logger"
 )
 
 type userUsecase struct {
@@ -16,10 +16,6 @@ func NewUserUsecase(repo *postgresrepo.UserRepository, zl *logger.ZapLogger) Use
 	return &userUsecase{repo, zl}
 }
 
-func (u *userUsecase) GetUserByEmail(ctx context.Context) (*domain.User, error) {
-	user, err := u.repo.GetUserByEmail(ctx, "")
-	if err != nil {
-		return nil, err
-	}
-	return user, nil
+func (u *userUsecase) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	return nil, nil
 }

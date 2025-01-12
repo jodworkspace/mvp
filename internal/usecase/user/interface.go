@@ -2,9 +2,9 @@ package useruc
 
 import (
 	"context"
-	"gitlab.com/tokpok/mvp/internal/domain"
+	"gitlab.com/gookie/mvp/internal/domain"
 )
 
 type UserUsecase interface {
-	GetUserByEmail(ctx context.Context) (*domain.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 }

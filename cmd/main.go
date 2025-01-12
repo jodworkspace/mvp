@@ -1,24 +1,17 @@
 package main
 
 import (
-	"gitlab.com/tokpok/mvp/config"
-	"gitlab.com/tokpok/mvp/internal/handler/rest"
-	"gitlab.com/tokpok/mvp/pkg/db"
-	"gitlab.com/tokpok/mvp/pkg/logger"
-	"log"
+	"gitlab.com/gookie/mvp/config"
+	"gitlab.com/gookie/mvp/internal/handler/rest"
+	"gitlab.com/gookie/mvp/pkg/db"
+	"gitlab.com/gookie/mvp/pkg/logger"
 )
 
 func main() {
 	cfg := config.NewConfig()
-	pgdb, err := db.NewPostgresConnection(cfg, db.PostgresOptions{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	zl, err := logger.NewZapLogger(cfg.Logger.Level)
-	if err != nil {
-		log.Fatal(err)
-	}
+	pgConn := db.MustNewPostgresConnection(cfg.Postgres.DSN(), db.WithMaxConns(10))
+	zl := logger.MustNewZapLogger(cfg.Logger.Level)
 
-	srv := rest.NewServer(cfg, pgdb, zl)
+	srv := rest.NewServer(cfg, pgConn, zl)
 	srv.Run()
 }
