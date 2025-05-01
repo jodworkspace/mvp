@@ -34,3 +34,7 @@ func (h *HTTPClient) SendJSONRequest(method, url string, payload any, headers ..
 
 	return h.Do(req)
 }
+
+func (h *HTTPClient) SendGetRequest(url string, headers ...http.Header) (*http.Response, error) {
+	return h.SendJSONRequest(http.MethodGet, url, nil, headers...)
+}

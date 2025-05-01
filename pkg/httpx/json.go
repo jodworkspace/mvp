@@ -53,7 +53,7 @@ func WriteJSON(w http.ResponseWriter, status int, data any, headers ...http.Head
 	return w.Write(out)
 }
 
-func ErrorJSON(w http.ResponseWriter, errResp *ErrorResponse) (int, error) {
+func ErrorJSON(w http.ResponseWriter, errResp ErrorResponse) (int, error) {
 	if errResp.StatusCode == 0 {
 		errResp.StatusCode = http.StatusInternalServerError
 	}

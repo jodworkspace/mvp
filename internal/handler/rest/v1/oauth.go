@@ -2,16 +2,13 @@ package v1
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"gitlab.com/gookie/mvp/config"
 	useruc "gitlab.com/gookie/mvp/internal/usecase/user"
 	"gitlab.com/gookie/mvp/pkg/httpclient"
 	"gitlab.com/gookie/mvp/pkg/httpx"
 	"gitlab.com/gookie/mvp/pkg/logger"
 	"gitlab.com/gookie/mvp/pkg/utils"
-	"io"
-
+	"go.uber.org/zap"
 	"net/http"
 )
 
@@ -26,7 +23,8 @@ func NewOAuthHandler(
 	userUC useruc.UserUsecase,
 	httpClient *httpclient.HTTPClient,
 	cfg *config.Config,
-	zl *logger.ZapLogger) *OAuthHandler {
+	zl *logger.ZapLogger,
+) *OAuthHandler {
 	return &OAuthHandler{
 		userUC:     userUC,
 		httpClient: httpClient,
@@ -35,33 +33,36 @@ func NewOAuthHandler(
 	}
 }
 
+type TokenRequest struct {
+	AuthorizationCode string `json:"authorizationCode" validate:"required"`
+	CodeVerifier      string `json:"codeVerifier" validate:"required"`
+	RedirectURI       string `json:"redirectUri" validate:"required"`
+}
+
 func (h *OAuthHandler) Authorize(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Location", "https://github.com")
 	w.WriteHeader(http.StatusFound)
 }
 
-func (h *OAuthHandler) GetToken(w http.ResponseWriter, r *http.Request) {
-	payload := struct {
-		AuthorizationCode string `json:"authorizationCode"`
-	}{}
+func (h *OAuthHandler) ExchangeToken(w http.ResponseWriter, r *http.Request) {
+	input := r.Context().Value("input").(*TokenRequest)
 
-	body, err := io.ReadAll(r.Body)
+	tokenURL, err := httpx.BuildURL(h.cfg.GoogleOAuth.TokenEndpoint, map[string]string{
+		"client_id":     h.cfg.GoogleOAuth.ClientID,
+		"client_secret": h.cfg.GoogleOAuth.ClientSecret,
+		"code":          input.AuthorizationCode,
+		"code_verifier": input.CodeVerifier,
+		"grant_type":    "authorization_code",
+		"redirect_uri":  input.RedirectURI,
+	})
 	if err != nil {
-		h.logger.Error(err.Error())
-		w.WriteHeader(http.StatusBadRequest)
+		h.logger.Error("OAuthHandler - httpx.BuildURL", zap.Error(err))
+		return
 	}
 
-	err = json.Unmarshal(body, &payload)
+	_, err = h.httpClient.SendGetRequest(tokenURL)
 	if err != nil {
-		h.logger.Error(err.Error())
-		w.WriteHeader(http.StatusBadRequest)
-	}
-
-	tokenURL := fmt.Sprintf("%s", h.cfg.GoogleOAuth.ClientSecret)
-
-	_, err = h.httpClient.SendJSONRequest("GET", tokenURL, nil)
-	if err != nil {
-		_, _ = httpx.ErrorJSON(w, nil)
+		return
 	}
 
 	_, _ = httpx.WriteJSON(w, http.StatusOK, tokenURL)
@@ -71,7 +72,7 @@ func (h *OAuthHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	accessToken := r.Header.Get("Authorization")[7:]
 	claims, err := utils.VerifyJWT(accessToken, h.cfg.JWT.Secret)
 	if err != nil {
-		_, _ = httpx.ErrorJSON(w, &httpx.ErrorResponse{
+		_, _ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			StatusCode: http.StatusUnauthorized,
 			Message:    err.Error(),
 		})
@@ -80,7 +81,7 @@ func (h *OAuthHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 
 	u, err := h.userUC.GetUserByEmail(context.TODO(), claims.Email)
 	if err != nil {
-		_, _ = httpx.ErrorJSON(w, &httpx.ErrorResponse{
+		_, _ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			StatusCode: http.StatusNotFound,
 			Message:    err.Error(),
 		})

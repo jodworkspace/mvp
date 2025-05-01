@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"gitlab.com/gookie/mvp/pkg/httpx"
 	"net/http"
@@ -34,12 +35,12 @@ func validateStruct(s any) []ValidationError {
 
 type Middleware func(next http.Handler) http.Handler
 
-func ValidationMiddleware(input any) Middleware {
+func Validate(input any) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			err := httpx.ReadJSON(r, input)
 			if err != nil {
-				_, _ = httpx.ErrorJSON(w, &httpx.ErrorResponse{
+				_, _ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 					StatusCode: http.StatusBadRequest,
 					Message:    err.Error(),
 				})
@@ -47,7 +48,11 @@ func ValidationMiddleware(input any) Middleware {
 
 			errs := validateStruct(input)
 			if len(errs) > 0 {
-				w.WriteHeader(http.StatusBadRequest)
+				message := fmt.Sprintf("invalid value for %s: expected %s, got %v", errs[0].Field, errs[0].Tag, errs[0].Value)
+				_, _ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+					StatusCode: http.StatusBadRequest,
+					Message:    message,
+				})
 			}
 
 			ctx := context.WithValue(r.Context(), "input", input)

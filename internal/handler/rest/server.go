@@ -85,8 +85,8 @@ func (s *Server) RestMux() *chi.Mux {
 	})
 
 	r.Get("/api/v1/userinfo", s.oauthHandler.GetUserInfo)
-	r.Post("/api/v1/authorize", s.oauthHandler.Authorize)
-	r.Post("/api/v1/token", s.oauthHandler.GetToken)
+	r.Post("/api/v1/oauth/authorize", s.oauthHandler.Authorize)
+	r.With(middleware.Validate(&v1.TokenRequest{})).Post("/api/v1/oauth/token", s.oauthHandler.ExchangeToken)
 
 	r.Get("/api/v1/tasks", s.taskHandler.List)
 	r.Post("/api/v1/tasks", s.taskHandler.Create)
