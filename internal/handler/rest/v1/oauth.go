@@ -7,6 +7,7 @@ import (
 	"gitlab.com/gookie/mvp/config"
 	useruc "gitlab.com/gookie/mvp/internal/usecase/user"
 	"gitlab.com/gookie/mvp/pkg/httpclient"
+	"gitlab.com/gookie/mvp/pkg/httpx"
 	"gitlab.com/gookie/mvp/pkg/logger"
 	"gitlab.com/gookie/mvp/pkg/utils"
 	"io"
@@ -15,15 +16,23 @@ import (
 )
 
 type OAuthHandler struct {
-	u          useruc.UserUsecase
-	zl         *logger.ZapLogger
-	cfg        *config.Config
+	userUC     useruc.UserUsecase
 	httpClient *httpclient.HTTPClient
+	cfg        *config.Config
+	logger     *logger.ZapLogger
 }
 
-func NewOAuthHandler(u useruc.UserUsecase, zl *logger.ZapLogger, cfg *config.Config) *OAuthHandler {
-	httpClient := &httpclient.HTTPClient{}
-	return &OAuthHandler{u, zl, cfg, httpClient}
+func NewOAuthHandler(
+	userUC useruc.UserUsecase,
+	httpClient *httpclient.HTTPClient,
+	cfg *config.Config,
+	zl *logger.ZapLogger) *OAuthHandler {
+	return &OAuthHandler{
+		userUC:     userUC,
+		httpClient: httpClient,
+		cfg:        cfg,
+		logger:     zl,
+	}
 }
 
 func (h *OAuthHandler) Authorize(w http.ResponseWriter, r *http.Request) {
@@ -38,13 +47,13 @@ func (h *OAuthHandler) GetToken(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		h.zl.Error(err.Error())
+		h.logger.Error(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
 	err = json.Unmarshal(body, &payload)
 	if err != nil {
-		h.zl.Error(err.Error())
+		h.logger.Error(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
@@ -52,32 +61,32 @@ func (h *OAuthHandler) GetToken(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.httpClient.SendJSONRequest("GET", tokenURL, nil)
 	if err != nil {
-		_ = utils.ErrorJSON(w, r, nil)
+		_, _ = httpx.ErrorJSON(w, nil)
 	}
 
-	_ = utils.WriteJSON(w, r, http.StatusOK, tokenURL)
+	_, _ = httpx.WriteJSON(w, http.StatusOK, tokenURL)
 }
 
 func (h *OAuthHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	accessToken := r.Header.Get("Authorization")[7:]
 	claims, err := utils.VerifyJWT(accessToken, h.cfg.JWT.Secret)
 	if err != nil {
-		_ = utils.ErrorJSON(w, r, &utils.ErrorResponse{
+		_, _ = httpx.ErrorJSON(w, &httpx.ErrorResponse{
 			StatusCode: http.StatusUnauthorized,
 			Message:    err.Error(),
 		})
 		return
 	}
 
-	u, err := h.u.GetUserByEmail(context.TODO(), claims.Email)
+	u, err := h.userUC.GetUserByEmail(context.TODO(), claims.Email)
 	if err != nil {
-		_ = utils.ErrorJSON(w, r, &utils.ErrorResponse{
+		_, _ = httpx.ErrorJSON(w, &httpx.ErrorResponse{
 			StatusCode: http.StatusNotFound,
 			Message:    err.Error(),
 		})
 		return
 	}
-	_ = utils.WriteJSON(w, r, http.StatusOK, u)
+	_, _ = httpx.WriteJSON(w, http.StatusOK, u)
 }
 
 func (h *OAuthHandler) Logout(w http.ResponseWriter, r *http.Request) {}

@@ -1,9 +1,13 @@
 package rest
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"gitlab.com/gookie/mvp/config"
-	"gitlab.com/gookie/mvp/pkg/db"
+	"gitlab.com/gookie/mvp/internal/handler/rest/middleware"
+	v1 "gitlab.com/gookie/mvp/internal/handler/rest/v1"
 	"gitlab.com/gookie/mvp/pkg/logger"
 	"log"
 	"net/http"
@@ -12,20 +16,23 @@ import (
 )
 
 type Server struct {
-	cfg    *config.Config
-	db     db.PostgresConn
-	logger *logger.ZapLogger
+	cfg          *config.Config
+	taskHandler  *v1.TaskHandler
+	oauthHandler *v1.OAuthHandler
+	logger       *logger.ZapLogger
 }
 
 func NewServer(
 	cfg *config.Config,
-	db db.PostgresConn,
+	taskHandler *v1.TaskHandler,
+	oauthHandler *v1.OAuthHandler,
 	logger *logger.ZapLogger,
 ) *Server {
 	return &Server{
-		cfg:    cfg,
-		db:     db,
-		logger: logger,
+		cfg:          cfg,
+		taskHandler:  taskHandler,
+		oauthHandler: oauthHandler,
+		logger:       logger,
 	}
 }
 
@@ -33,7 +40,7 @@ func (s *Server) Run() {
 	addr := fmt.Sprintf("%s:%s", s.cfg.Server.Host, s.cfg.Server.Port)
 	srv := &http.Server{
 		Addr:           addr,
-		Handler:        s.RestHandlersRoute(),
+		Handler:        s.RestMux(),
 		MaxHeaderBytes: 1 << 20,
 	}
 
@@ -56,4 +63,38 @@ func (s *Server) Run() {
 			log.Fatal("Server error:", err)
 		}
 	}
+}
+
+func (s *Server) RestMux() *chi.Mux {
+	r := chi.NewRouter()
+
+	r.Use(chimiddleware.RequestID)
+	r.Use(chimiddleware.RealIP)
+	r.Use(chimiddleware.Logger)
+	r.Use(chimiddleware.Recoverer)
+
+	r.Use(middleware.CORS)
+
+	r.Get("/api/v1/healthcheck", func(w http.ResponseWriter, r *http.Request) {
+		data, _ := json.Marshal(map[string]any{
+			"status": "ok",
+		})
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(data)
+	})
+
+	r.Get("/api/v1/userinfo", s.oauthHandler.GetUserInfo)
+	r.Post("/api/v1/authorize", s.oauthHandler.Authorize)
+	r.Post("/api/v1/token", s.oauthHandler.GetToken)
+
+	r.Get("/api/v1/tasks", s.taskHandler.List)
+	r.Post("/api/v1/tasks", s.taskHandler.Create)
+
+	r.NotFound(Return404)
+	return r
+}
+
+func Return404(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "Route not found", http.StatusNotFound)
 }

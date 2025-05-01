@@ -1,4 +1,4 @@
-package utils
+package httpx
 
 import (
 	"encoding/json"
@@ -13,9 +13,15 @@ type ErrorResponse struct {
 	Details    map[string]any `json:"details,omitempty"`
 }
 
-func ReadJSON(w http.ResponseWriter, r *http.Request, data any) error {
-	// r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+type JSON map[string]any
+
+func ReadJSON(r *http.Request, data any) error {
+	defer r.Body.Close()
+
 	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	// json.Unmarshal require reading the body into memory first using io.ReadAll
 	err := decoder.Decode(data)
 	if err != nil {
 		return err
@@ -25,13 +31,14 @@ func ReadJSON(w http.ResponseWriter, r *http.Request, data any) error {
 	if err != io.EOF {
 		return errors.New("body must have a single JSON value")
 	}
+
 	return nil
 }
 
-func WriteJSON(w http.ResponseWriter, r *http.Request, status int, data any, headers ...http.Header) error {
+func WriteJSON(w http.ResponseWriter, status int, data any, headers ...http.Header) (int, error) {
 	out, err := json.MarshalIndent(data, "", "\t")
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if len(headers) > 0 {
@@ -39,17 +46,21 @@ func WriteJSON(w http.ResponseWriter, r *http.Request, status int, data any, hea
 			w.Header()[k] = v
 		}
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
-	_, err = w.Write(out)
-	return err
+	return w.Write(out)
 }
 
-func ErrorJSON(w http.ResponseWriter, r *http.Request, data *ErrorResponse) error {
-	if data.StatusCode == 0 {
-		data.StatusCode = http.StatusInternalServerError
+func ErrorJSON(w http.ResponseWriter, errResp *ErrorResponse) (int, error) {
+	if errResp.StatusCode == 0 {
+		errResp.StatusCode = http.StatusInternalServerError
 	}
-	err := WriteJSON(w, r, data.StatusCode, data)
-	return err
+
+	if errResp.Message == "" {
+		errResp.Message = http.StatusText(errResp.StatusCode)
+	}
+
+	return WriteJSON(w, errResp.StatusCode, errResp)
 }

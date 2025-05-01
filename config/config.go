@@ -5,6 +5,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -39,6 +40,7 @@ type ServerConfig struct {
 }
 
 type HTTPClientConfig struct {
+	Timeout time.Duration `envconfig:"timeout" default:"10s"`
 }
 
 type JWTConfig struct {
@@ -65,18 +67,27 @@ type RedisConfig struct {
 type PostgresConfig struct {
 	Host     string `envconfig:"pg_host" default:"localhost"`
 	Port     uint16 `envconfig:"pg_port" default:"5432"`
-	User     string `envconfig:"pg_user" required:"true"`
+	Username string `envconfig:"pg_username" required:"true"`
 	Password string `envconfig:"pg_password" required:"true"`
 	Database string `envconfig:"pg_database" required:"true"`
 	Params   map[string]string
 }
 
 func (c *PostgresConfig) DSN(opts ...map[string]string) string {
-	return fmt.Sprintf("postgresql://%s:%s@%s:%d/%s",
-		c.User,
+	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s",
+		c.Username,
 		c.Password,
 		c.Host,
 		c.Port,
 		c.Database,
 	)
+
+	if len(opts) > 0 {
+		for k, v := range opts[0] {
+			dsn += fmt.Sprintf("&%s=%s", k, v)
+		}
+	}
+
+	dsn = strings.Replace(dsn, "&", "?", 1)
+	return dsn
 }

@@ -19,10 +19,11 @@ const (
 	ColTaskTitle             = "title"
 	ColTaskDetails           = "details"
 	ColTaskPriorityLevel     = "priority_level"
+	ColTaskIsCompleted       = "is_completed"
 	ColTaskStartDate         = "start_date"
 	ColTaskEstimatedDuration = "estimated_duration"
 	ColTaskDueDate           = "due_date"
-	ColTaskOwnerUserID       = "owner_user_id"
+	ColTaskOwnerID           = "owner_id"
 )
 
 var (
@@ -31,10 +32,11 @@ var (
 		ColTaskTitle,
 		ColTaskDetails,
 		ColTaskPriorityLevel,
+		ColTaskIsCompleted,
 		ColTaskStartDate,
 		ColTaskEstimatedDuration,
 		ColTaskDueDate,
-		ColTaskOwnerUserID,
+		ColTaskOwnerID,
 		ColCreatedAt,
 		ColUpdatedAt,
 	}

@@ -15,8 +15,8 @@ func NewUserRepository(conn db.PostgresConn) *UserRepository {
 	return &UserRepository{conn}
 }
 
-func (r *UserRepository) Exists(ctx context.Context, colName string, val any) (bool, error) {
-	return exists(r.PostgresConn, ctx, domain.TableUser, colName, val)
+func (r *UserRepository) Exists(ctx context.Context, col string, val any) (bool, error) {
+	return exists(r.PostgresConn, ctx, domain.TableUser, col, val)
 }
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {

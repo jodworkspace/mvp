@@ -14,4 +14,4 @@ MVP Backend for my boring project
 
 ### Naming Conventions
 
-- [Acronyms - consistent case](https://go.dev/wiki/CodeReviewComments#initialisms)
+- [Acronyms - Consistent Case](https://go.dev/wiki/CodeReviewComments#initialisms)

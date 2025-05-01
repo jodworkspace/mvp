@@ -20,5 +20,9 @@ func exists(db db.PostgresConn, ctx context.Context, table string, col string, v
 
 	var exists bool
 	err = db.Pool().QueryRow(ctx, query, args...).Scan(&exists)
-	return exists, err
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }

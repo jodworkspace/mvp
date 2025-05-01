@@ -13,9 +13,11 @@ type Claims struct {
 func GenerateJWT(expiry time.Duration, secret string) (string, error) {
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   "",
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiry * time.Second)),
 		},
+		Email: "",
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))

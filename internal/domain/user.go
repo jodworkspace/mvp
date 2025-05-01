@@ -2,14 +2,14 @@ package domain
 
 type User struct {
 	Base
-	DisplayName       string `json:"display_name"`
+	DisplayName       string `json:"display_name" db:"display_name"`
 	Email             string `json:"email" db:"email"`
 	EmailVerified     bool   `json:"email_verified" db:"email_verified"`
-	Password          string `json:"password"`
-	PIN               string `json:"pin"`
-	AvatarURL         string `json:"avatar_url"`
-	PreferredLanguage string `json:"preferred_language"`
-	Active            bool   `json:"active"`
+	Password          string `json:"password" db:"password"`
+	PIN               string `json:"pin" db:"pin"`
+	AvatarURL         string `json:"avatar_url" db:"avatar_url"`
+	PreferredLanguage string `json:"preferred_language" db:"preferred_language"`
+	Active            bool   `json:"active" db:"active"`
 }
 
 type FederatedUser struct {
