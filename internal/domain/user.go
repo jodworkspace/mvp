@@ -13,9 +13,10 @@ type User struct {
 }
 
 type FederatedUser struct {
+	Base
 	UserID       string `json:"user_id" db:"user_id"`
 	Provider     string `json:"provider" db:"provider"`
-	ExternalID   string `json:"external_id" db:"external_user_id"`
+	ExternalID   string `json:"external_id" db:"external_id"`
 	AccessToken  string `json:"access_token" db:"access_token"`
 	RefreshToken string `json:"refresh_token" db:"refresh_token"`
 }
@@ -30,10 +31,17 @@ const (
 	ColUserAvatarURL         = "avatar_url"
 	ColUserPreferredLanguage = "preferred_language"
 	ColUserActive            = "active"
+
+	TableFederatedUser           = "federated_users"
+	ColFederatedUserUserID       = "user_id"
+	ColFederatedUserProvider     = "provider"
+	ColFederatedUserExternalID   = "external_id"
+	ColFederatedUserAccessToken  = "access_token"
+	ColFederatedUserRefreshToken = "refresh_token"
 )
 
 var (
-	UserPublicCol = []string{
+	UserPublicCols = []string{
 		ColID,
 		ColUserDisplayName,
 		ColUserEmail,
@@ -45,8 +53,19 @@ var (
 		ColUpdatedAt,
 	}
 
-	UserProtectedCol = []string{
+	UserProtectedCols = []string{
 		ColUserPassword,
 		ColUserPIN,
+	}
+
+	FederatedUserAllCols = []string{
+		ColID,
+		ColFederatedUserUserID,
+		ColFederatedUserProvider,
+		ColFederatedUserExternalID,
+		ColFederatedUserAccessToken,
+		ColFederatedUserRefreshToken,
+		ColCreatedAt,
+		ColUpdatedAt,
 	}
 )

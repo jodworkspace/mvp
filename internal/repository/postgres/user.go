@@ -8,22 +8,46 @@ import (
 )
 
 type UserRepository struct {
-	db.PostgresConn
+	db.Postgres
 }
 
-func NewUserRepository(conn db.PostgresConn) *UserRepository {
+func NewUserRepository(conn db.Postgres) *UserRepository {
 	return &UserRepository{conn}
 }
 
 func (r *UserRepository) Exists(ctx context.Context, col string, val any) (bool, error) {
-	return exists(r.PostgresConn, ctx, domain.TableUser, col, val)
+	return exists(r.Postgres, ctx, domain.TableUser, col, val)
 }
 
-func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+func (r *UserRepository) Insert(ctx context.Context, user *domain.User) error {
 	query, args, err := r.QueryBuilder().
-		Select(domain.UserPublicCol...).
+		Insert(domain.TableUser).
+		Columns(domain.UserPublicCols...).
+		Values(
+			user.ID,
+			user.DisplayName,
+			user.Email,
+			user.EmailVerified,
+			user.AvatarURL,
+			user.PreferredLanguage,
+			user.Active,
+			user.CreatedAt,
+			user.UpdatedAt,
+		).
+		Suffix("RETURNING id").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	return r.Pool().QueryRow(ctx, query, args...).Scan(&user.ID)
+}
+
+func (r *UserRepository) Get(ctx context.Context, id string) (*domain.User, error) {
+	query, args, err := r.QueryBuilder().
+		Select(domain.UserPublicCols...).
 		From(domain.TableUser).
-		Where(squirrel.Eq{domain.ColUserEmail: email}).
+		Where(squirrel.Eq{domain.ColID: id}).
 		ToSql()
 	if err != nil {
 		return nil, err

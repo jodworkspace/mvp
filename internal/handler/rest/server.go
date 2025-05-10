@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
-	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"gitlab.com/gookie/mvp/config"
-	"gitlab.com/gookie/mvp/internal/handler/rest/middleware"
+	mw "gitlab.com/gookie/mvp/internal/handler/rest/middleware"
 	v1 "gitlab.com/gookie/mvp/internal/handler/rest/v1"
 	"gitlab.com/gookie/mvp/pkg/logger"
+	"gitlab.com/gookie/mvp/pkg/utils/httpx"
 	"log"
 	"net/http"
 	"os"
@@ -68,28 +70,36 @@ func (s *Server) Run() {
 func (s *Server) RestMux() *chi.Mux {
 	r := chi.NewRouter()
 
-	r.Use(chimiddleware.RequestID)
-	r.Use(chimiddleware.RealIP)
-	r.Use(chimiddleware.Logger)
-	r.Use(chimiddleware.Recoverer)
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
 
-	r.Use(middleware.CORS)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
 
-	r.Get("/api/v1/healthcheck", func(w http.ResponseWriter, r *http.Request) {
-		data, _ := json.Marshal(map[string]any{
-			"status": "ok",
-		})
-
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		data, _ := json.Marshal(httpx.JSON{"status": "ok"})
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(data)
 	})
 
 	r.Get("/api/v1/userinfo", s.oauthHandler.GetUserInfo)
 	r.Post("/api/v1/oauth/authorize", s.oauthHandler.Authorize)
-	r.With(middleware.Validate(&v1.TokenRequest{})).Post("/api/v1/oauth/token", s.oauthHandler.ExchangeToken)
+	r.Post("/api/v1/oauth/token", s.oauthHandler.ExchangeToken)
 
-	r.Get("/api/v1/tasks", s.taskHandler.List)
-	r.Post("/api/v1/tasks", s.taskHandler.Create)
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(mw.Auth([]byte(s.cfg.JWT.Secret)))
+
+		r.Get("/tasks", s.taskHandler.List)
+		r.Post("/tasks", s.taskHandler.Create)
+		r.Delete("/tasks/{id}", s.taskHandler.Delete)
+	})
 
 	r.NotFound(Return404)
 	return r

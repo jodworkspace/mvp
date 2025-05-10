@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func NewConfig(envFiles ...string) *Config {
+func LoadConfig(envFiles ...string) *Config {
 	err := godotenv.Load(envFiles...)
 	if err != nil {
 		log.Printf("[Warning] config - init - godotenv.Load: %v", err)
@@ -54,9 +54,9 @@ type LoggerConfig struct {
 }
 
 type GoogleOAuthConfig struct {
-	ClientID      string `envconfig:"google_client_id"`
-	ClientSecret  string `envconfig:"google_client_secret"`
-	TokenEndpoint string `envconfig:"google_token_endpoint"`
+	ClientID      string `envconfig:"google_client_id" required:"true"`
+	ClientSecret  string `envconfig:"google_client_secret" required:"true"`
+	TokenEndpoint string `envconfig:"google_token_endpoint" required:"true"`
 }
 
 type RedisConfig struct {

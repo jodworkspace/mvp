@@ -1,12 +1,24 @@
-# MVP (Admin Gateway in later versions)
+# MVP
 
 MVP Backend for my boring project
 
-- Integrate the YouTube API, Spotify API, or an embedded player for music/video streaming functionality.
-- Utilize WebSocket for real-time chat functionality.
 - Enable user authentication through Google login.
-- Library features (shared learning resources, and lifelike tables)
-- Real-time search
+- Markdown support for notes and documentation.
+- Task management with a To-do list.
+- Integrate the Google Drive for storage & YouTube API for music/video streaming functionality.
+
+### Dependency Rules
+
+| Package    | Rule                                                                                        |
+|------------|---------------------------------------------------------------------------------------------|
+| domain     | No dependencies. Other layers can depend on it                                              |
+| repository | Depends on domain and external libraries                                                    |
+| usecase    | Depends only on domain and repository interfaces                                            |
+| middleware | Can depend on domain and sometimes usecase (if needed)                                      |
+| handler    | Depends on usecase, domain, and middleware                                                  |
+| pkg        | Shared utilities, reusable across all layers. Should not import any other internal packages |
+
+- If shared types or functions need to be used in the domain package but must remain independent of the rest of the application, they should be placed in a separate project or module.
 
 ## References
 

@@ -5,6 +5,10 @@ import (
 	"gitlab.com/gookie/mvp/internal/domain"
 )
 
-type UserUsecase interface {
-	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
+type UserRepository interface {
+	Insert(ctx context.Context, user *domain.User) error
+}
+
+type FederatedUserRepository interface {
+	Insert(ctx context.Context, user *domain.FederatedUser) error
 }

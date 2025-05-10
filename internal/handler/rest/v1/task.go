@@ -1,10 +1,11 @@
 package v1
 
 import (
+	"gitlab.com/gookie/mvp/config"
 	taskuc "gitlab.com/gookie/mvp/internal/usecase/task"
-	"gitlab.com/gookie/mvp/pkg/httpx"
 	"gitlab.com/gookie/mvp/pkg/logger"
 	"gitlab.com/gookie/mvp/pkg/utils"
+	"gitlab.com/gookie/mvp/pkg/utils/httpx"
 	"net/http"
 )
 
@@ -20,22 +21,17 @@ func NewTaskHandler(taskUC taskuc.TaskUsecase, zl *logger.ZapLogger) *TaskHandle
 	}
 }
 
-const (
-	defaultPage     = 1
-	defaultPageSize = 10
-)
-
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	queries := r.URL.Query()
 
 	page := utils.StringToUint64(queries.Get("page"))
 	if page == 0 {
-		page = defaultPage
+		page = config.DefaultPage
 	}
 
 	pageSize := utils.StringToUint64(queries.Get("limit"))
 	if pageSize == 0 {
-		pageSize = defaultPageSize
+		pageSize = config.DefaultPageSize
 	}
 
 	tasks, err := h.taskUC.List(r.Context(), page, pageSize)
@@ -48,7 +44,7 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _ = httpx.WriteJSON(w, http.StatusOK, httpx.JSON{
+	_ = httpx.WriteJSON(w, http.StatusOK, httpx.JSON{
 		"status": "ok",
 		"page":   page,
 		"total":  total,
@@ -60,3 +56,9 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	w.WriteHeader(http.StatusOK)
 }
+
+func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {}
+
+func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {}
+
+func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {}

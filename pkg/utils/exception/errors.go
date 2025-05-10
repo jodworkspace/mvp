@@ -7,7 +7,9 @@ var (
 
 	ErrExpiredToken   = errors.New("expired token")
 	ErrMalformedToken = errors.New("malformed token")
-	ErrUserNotFound   = errors.New("user not found")
+	ErrInvalidClaims  = errors.New("invalid claims")
+
+	ErrUserNotFound = errors.New("user not found")
 )
 
 func handleHTTPError(err error) {}

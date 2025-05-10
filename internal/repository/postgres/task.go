@@ -8,10 +8,10 @@ import (
 )
 
 type TaskRepository struct {
-	db.PostgresConn
+	db.Postgres
 }
 
-func NewTaskRepository(conn db.PostgresConn) *TaskRepository {
+func NewTaskRepository(conn db.Postgres) *TaskRepository {
 	return &TaskRepository{conn}
 }
 
@@ -135,7 +135,6 @@ func (r *TaskRepository) Get(ctx context.Context, id uint64) (*domain.Task, erro
 }
 
 func (r *TaskRepository) Update(ctx context.Context, task *domain.Task) (*domain.Task, error) {
-
 	return task, nil
 }
 

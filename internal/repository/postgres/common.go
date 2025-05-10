@@ -6,7 +6,7 @@ import (
 	"gitlab.com/gookie/mvp/pkg/db"
 )
 
-func exists(db db.PostgresConn, ctx context.Context, table string, col string, val any) (bool, error) {
+func exists(db db.Postgres, ctx context.Context, table string, col string, val any) (bool, error) {
 	query, args, err := db.QueryBuilder().
 		Select("1").
 		Prefix("SELECT EXISTS(").
