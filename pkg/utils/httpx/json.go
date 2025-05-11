@@ -15,12 +15,6 @@ type ErrorResponse struct {
 	Details    JSON   `json:"details,omitempty"`
 }
 
-type SuccessResponse struct {
-	StatusCode int    `json:"status_code"`
-	Message    string `json:"message"`
-	Data       JSON   `json:"data,omitempty"`
-}
-
 func ReadJSON(r *http.Request, data any) error {
 	defer r.Body.Close()
 

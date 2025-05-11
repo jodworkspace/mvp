@@ -96,7 +96,7 @@ func (s *Server) RestMux() *chi.Mux {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(mw.Auth([]byte(s.cfg.JWT.Secret)))
 
-		r.Get("/tasks", s.taskHandler.List)
+		r.With(mw.Pagination).Get("/tasks", s.taskHandler.List)
 		r.Post("/tasks", s.taskHandler.Create)
 		r.Delete("/tasks/{id}", s.taskHandler.Delete)
 	})

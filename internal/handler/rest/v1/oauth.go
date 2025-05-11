@@ -1,33 +1,33 @@
 package v1
 
 import (
-	"gitlab.com/gookie/mvp/internal/usecase/oauth"
+	"gitlab.com/gookie/mvp/internal/domain"
 	"gitlab.com/gookie/mvp/pkg/logger"
 	"gitlab.com/gookie/mvp/pkg/utils/httpx"
+	"go.uber.org/zap"
 	"net/http"
 )
 
 type UserUsecase interface{}
 
+type OAuthUsecase interface {
+	GenerateToken(user *domain.User) string
+	ExchangeToken(provider, authorizationCode, codeVerifier, redirectURI string) error
+	GetUserInfo(provider, accessToken string) (*domain.User, error)
+}
+
 type OAuthHandler struct {
 	userUC  UserUsecase
-	oauthUC map[string]oauth.UseCase
+	oauthUC OAuthUsecase
 	logger  *logger.ZapLogger
 }
 
-func NewOAuthHandler(userUC UserUsecase, zl *logger.ZapLogger) *OAuthHandler {
+func NewOAuthHandler(userUC UserUsecase, oauthUC OAuthUsecase, zl *logger.ZapLogger) *OAuthHandler {
 	return &OAuthHandler{
 		userUC:  userUC,
-		oauthUC: make(map[string]oauth.UseCase),
+		oauthUC: oauthUC,
 		logger:  zl,
 	}
-}
-
-func (h *OAuthHandler) RegisterOAuthProvider(uc oauth.UseCase) {
-	if h.oauthUC == nil {
-		h.oauthUC = make(map[string]oauth.UseCase)
-	}
-	h.oauthUC[uc.Provider()] = uc
 }
 
 func (h *OAuthHandler) Authorize(w http.ResponseWriter, r *http.Request) {
@@ -53,17 +53,7 @@ func (h *OAuthHandler) ExchangeToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	provider := r.Context().Value("provider").(string)
-	uc, exist := h.oauthUC[provider]
-	if !exist {
-		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    "invalid provider",
-			Details:    httpx.JSON{"error": "invalid provider"},
-		})
-		return
-	}
-
-	err = uc.ExchangeToken(input.AuthorizationCode, input.CodeVerifier, input.RedirectURI)
+	err = h.oauthUC.ExchangeToken(provider, input.AuthorizationCode, input.CodeVerifier, input.RedirectURI)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -72,13 +62,24 @@ func (h *OAuthHandler) ExchangeToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = httpx.WriteJSON(w, http.StatusOK, httpx.JSON{
+	user := &domain.User{}
+
+	accessToken := h.oauthUC.GenerateToken(user)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		HttpOnly: true,
+		SameSite: http.SameSiteNoneMode,
+		Secure:   false,
+	})
+
+	err = httpx.WriteJSON(w, http.StatusOK, httpx.JSON{
 		"code":    http.StatusOK,
 		"message": "success",
-		"data": httpx.JSON{
-			"access_token": "",
-		},
 	})
+	if err != nil {
+		h.logger.Error("OAuthHandler - ExchangeToken - httpx.WriteJSON", zap.Error(err))
+	}
 }
 
 func (h *OAuthHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {

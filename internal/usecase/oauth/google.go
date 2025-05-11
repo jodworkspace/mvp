@@ -3,6 +3,7 @@ package oauth
 import (
 	"encoding/json"
 	"gitlab.com/gookie/mvp/config"
+	"gitlab.com/gookie/mvp/internal/domain"
 	"gitlab.com/gookie/mvp/pkg/logger"
 	"gitlab.com/gookie/mvp/pkg/utils/httpx"
 	"go.uber.org/zap"
@@ -29,7 +30,11 @@ func (u *GoogleUseCase) Provider() string {
 	return "google"
 }
 
-func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectURI string) error {
+func (u *GoogleUseCase) onboardUser(user *domain.User, federatedUser *domain.FederatedUser) error {
+	return nil
+}
+
+func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectURI string) (string, error) {
 	tokenURL, err := u.httpClient.BuildURL(u.config.TokenEndpoint, map[string]string{
 		"client_id":     u.config.ClientID,
 		"client_secret": u.config.ClientSecret,
@@ -41,13 +46,13 @@ func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectU
 
 	if err != nil {
 		u.logger.Error("GoogleUseCase - httpx.BuildURL", zap.Error(err))
-		return err
+		return "", err
 	}
 
 	resp, err := u.httpClient.DoRequest("POST", tokenURL)
 	if err != nil {
 		u.logger.Error("GoogleUseCase - httpClient.DoRequest", zap.Error(err))
-		return err
+		return "", err
 	}
 
 	var data struct {
@@ -61,8 +66,36 @@ func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectU
 	}
 	err = json.NewDecoder(resp.Body).Decode(&data)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return data.AccessToken, nil
+}
+
+func (u *GoogleUseCase) GetUserInfo(accessToken string) (*domain.User, error) {
+	userInfoURL, err := u.httpClient.BuildURL(u.config.UserInfoEndpoint, map[string]string{
+		"access_token": accessToken,
+	})
+	if err != nil {
+		u.logger.Error("GoogleUseCase - httpx.BuildURL", zap.Error(err))
+		return nil, err
+	}
+
+	resp, err := u.httpClient.DoRequest("GET", userInfoURL)
+	if err != nil {
+		u.logger.Error("GoogleUseCase - httpClient.DoRequest", zap.Error(err))
+		return nil, err
+	}
+
+	var userinfo struct {
+		DisplayName   string `json:"display_name"`
+		Email         string `json:"email"`
+		EmailVerified bool   `json:"email_verified"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&userinfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }

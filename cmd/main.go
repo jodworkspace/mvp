@@ -28,11 +28,13 @@ func main() {
 	userRepository := postgresrepo.NewUserRepository(pgConn)
 	federatedUserRepository := postgresrepo.NewFederatedUserRepository(pgConn)
 
-	userUC := useruc.NewUserUsecase(userRepository, federatedUserRepository, zl)
-	oauthHandler := v1.NewOAuthHandler(userUC, zl)
-
+	userUC := useruc.NewUserUsecase(userRepository, zl)
+	oauthUC := oauth.NewManager(cfg.JWT, zl)
 	googleUC := oauth.NewGoogleUseCase(cfg.GoogleOAuth, zl)
-	oauthHandler.RegisterOAuthProvider(googleUC)
+
+	oauthUC.RegisterOAuthProvider(googleUC)
+
+	oauthHandler := v1.NewOAuthHandler(userUC, zl)
 
 	srv := rest.NewServer(cfg, taskHandler, oauthHandler, zl)
 	srv.Run()

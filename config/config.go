@@ -54,9 +54,10 @@ type LoggerConfig struct {
 }
 
 type GoogleOAuthConfig struct {
-	ClientID      string `envconfig:"google_client_id" required:"true"`
-	ClientSecret  string `envconfig:"google_client_secret" required:"true"`
-	TokenEndpoint string `envconfig:"google_token_endpoint" required:"true"`
+	ClientID         string `envconfig:"google_client_id" required:"true"`
+	ClientSecret     string `envconfig:"google_client_secret" required:"true"`
+	TokenEndpoint    string `envconfig:"google_token_endpoint" required:"true"`
+	UserInfoEndpoint string `envconfig:"google_userinfo_endpoint" required:"true"`
 }
 
 type RedisConfig struct {

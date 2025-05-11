@@ -1,10 +1,9 @@
 package v1
 
 import (
-	"gitlab.com/gookie/mvp/config"
+	"gitlab.com/gookie/mvp/internal/domain"
 	taskuc "gitlab.com/gookie/mvp/internal/usecase/task"
 	"gitlab.com/gookie/mvp/pkg/logger"
-	"gitlab.com/gookie/mvp/pkg/utils"
 	"gitlab.com/gookie/mvp/pkg/utils/httpx"
 	"net/http"
 )
@@ -22,17 +21,9 @@ func NewTaskHandler(taskUC taskuc.TaskUsecase, zl *logger.ZapLogger) *TaskHandle
 }
 
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
-	queries := r.URL.Query()
-
-	page := utils.StringToUint64(queries.Get("page"))
-	if page == 0 {
-		page = config.DefaultPage
-	}
-
-	pageSize := utils.StringToUint64(queries.Get("limit"))
-	if pageSize == 0 {
-		pageSize = config.DefaultPageSize
-	}
+	pagination := r.Context().Value("pagination").(domain.Pagination)
+	page := pagination.Page
+	pageSize := pagination.PageSize
 
 	tasks, err := h.taskUC.List(r.Context(), page, pageSize)
 	if err != nil {

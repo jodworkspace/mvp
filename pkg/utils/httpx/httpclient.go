@@ -50,7 +50,7 @@ func (h *httpClient) DoRequestWithJSONBody(method, url string, body any, headers
 	return h.Do(req)
 }
 
-func (h *httpClient) BuildURL(base string, query ...map[string]string) (string, error) {
+func (*httpClient) BuildURL(base string, query ...map[string]string) (string, error) {
 	b, err := url.Parse(base)
 	if err != nil {
 		return "", err

@@ -9,6 +9,8 @@ var (
 	ErrMalformedToken = errors.New("malformed token")
 	ErrInvalidClaims  = errors.New("invalid claims")
 
+	ErrInvalidProvider = errors.New("invalid provider")
+
 	ErrUserNotFound = errors.New("user not found")
 )
 

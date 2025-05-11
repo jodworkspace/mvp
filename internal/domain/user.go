@@ -15,56 +15,56 @@ type User struct {
 type FederatedUser struct {
 	Base
 	UserID       string `json:"user_id" db:"user_id"`
-	Provider     string `json:"provider" db:"provider"`
+	Issuer       string `json:"issuer" db:"issuer"`
 	ExternalID   string `json:"external_id" db:"external_id"`
 	AccessToken  string `json:"access_token" db:"access_token"`
 	RefreshToken string `json:"refresh_token" db:"refresh_token"`
 }
 
 const (
-	TableUser                = "users"
-	ColUserDisplayName       = "display_name"
-	ColUserEmail             = "email"
-	ColUserEmailVerified     = "email_verified"
-	ColUserPassword          = "password"
-	ColUserPIN               = "pin"
-	ColUserAvatarURL         = "avatar_url"
-	ColUserPreferredLanguage = "preferred_language"
-	ColUserActive            = "active"
+	TableUser            = "users"
+	ColDisplayName       = "display_name"
+	ColEmail             = "email"
+	ColEmailVerified     = "email_verified"
+	ColPassword          = "password"
+	ColPIN               = "pin"
+	ColAvatarURL         = "avatar_url"
+	ColPreferredLanguage = "preferred_language"
+	ColActive            = "active"
 
-	TableFederatedUser           = "federated_users"
-	ColFederatedUserUserID       = "user_id"
-	ColFederatedUserProvider     = "provider"
-	ColFederatedUserExternalID   = "external_id"
-	ColFederatedUserAccessToken  = "access_token"
-	ColFederatedUserRefreshToken = "refresh_token"
+	TableFederatedUser = "federated_users"
+	ColUserID          = "user_id"
+	ColIssuer          = "issuer"
+	ColExternalID      = "external_id"
+	ColAccessToken     = "access_token"
+	ColRefreshToken    = "refresh_token"
 )
 
 var (
 	UserPublicCols = []string{
 		ColID,
-		ColUserDisplayName,
-		ColUserEmail,
-		ColUserEmailVerified,
-		ColUserAvatarURL,
-		ColUserPreferredLanguage,
-		ColUserActive,
+		ColDisplayName,
+		ColEmail,
+		ColEmailVerified,
+		ColAvatarURL,
+		ColPreferredLanguage,
+		ColActive,
 		ColCreatedAt,
 		ColUpdatedAt,
 	}
 
 	UserProtectedCols = []string{
-		ColUserPassword,
-		ColUserPIN,
+		ColPassword,
+		ColPIN,
 	}
 
 	FederatedUserAllCols = []string{
 		ColID,
-		ColFederatedUserUserID,
-		ColFederatedUserProvider,
-		ColFederatedUserExternalID,
-		ColFederatedUserAccessToken,
-		ColFederatedUserRefreshToken,
+		ColUserID,
+		ColIssuer,
+		ColExternalID,
+		ColAccessToken,
+		ColRefreshToken,
 		ColCreatedAt,
 		ColUpdatedAt,
 	}
