@@ -14,28 +14,29 @@ import (
 
 func main() {
 	cfg := config.LoadConfig()
-	zl := logger.MustNewZapLogger(cfg.Logger.Level)
+	zapLogger := logger.MustNewZapLogger(cfg.Logger.Level)
 
 	pgConn := db.MustNewPostgresConnection(
 		cfg.Postgres.DSN(),
 		db.WithMaxConns(10),
 		db.WithMinConns(2))
 
+	transactionManager := postgresrepo.NewTransactionManager(pgConn)
+
 	taskRepository := postgresrepo.NewTaskRepository(pgConn)
-	taskUC := taskuc.NewTaskUsecase(taskRepository, zl)
-	taskHandler := v1.NewTaskHandler(taskUC, zl)
+	taskUC := taskuc.NewTaskUsecase(taskRepository, zapLogger)
+	taskHandler := v1.NewTaskHandler(taskUC, zapLogger)
 
 	userRepository := postgresrepo.NewUserRepository(pgConn)
 	federatedUserRepository := postgresrepo.NewFederatedUserRepository(pgConn)
+	userUC := useruc.NewUserUseCase(userRepository, federatedUserRepository, transactionManager, zapLogger)
 
-	userUC := useruc.NewUserUsecase(userRepository, zl)
-	oauthUC := oauth.NewManager(cfg.JWT, zl)
-	googleUC := oauth.NewGoogleUseCase(cfg.GoogleOAuth, zl)
-
+	oauthUC := oauth.NewManager(cfg.JWT, zapLogger)
+	googleUC := oauth.NewGoogleUseCase(cfg.GoogleOAuth, zapLogger)
 	oauthUC.RegisterOAuthProvider(googleUC)
 
-	oauthHandler := v1.NewOAuthHandler(userUC, zl)
+	oauthHandler := v1.NewOAuthHandler(userUC, oauthUC, zapLogger)
 
-	srv := rest.NewServer(cfg, taskHandler, oauthHandler, zl)
+	srv := rest.NewServer(cfg, taskHandler, oauthHandler, zapLogger)
 	srv.Run()
 }

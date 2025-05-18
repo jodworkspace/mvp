@@ -8,11 +8,12 @@ import (
 	"net/http"
 )
 
-type UserUsecase interface{}
+type UserUsecase interface {
+}
 
 type OAuthUsecase interface {
 	GenerateToken(user *domain.User) string
-	ExchangeToken(provider, authorizationCode, codeVerifier, redirectURI string) error
+	ExchangeToken(provider, authorizationCode, codeVerifier, redirectURI string) (string, error)
 	GetUserInfo(provider, accessToken string) (*domain.User, error)
 }
 
@@ -53,7 +54,7 @@ func (h *OAuthHandler) ExchangeToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	provider := r.Context().Value("provider").(string)
-	err = h.oauthUC.ExchangeToken(provider, input.AuthorizationCode, input.CodeVerifier, input.RedirectURI)
+	_, err = h.oauthUC.ExchangeToken(provider, input.AuthorizationCode, input.CodeVerifier, input.RedirectURI)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,

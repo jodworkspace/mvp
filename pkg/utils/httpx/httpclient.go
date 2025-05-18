@@ -1,46 +1,30 @@
 package httpx
 
 import (
+	"io"
 	"net/http"
 	"net/url"
 )
 
 type Client interface {
 	BuildURL(base string, query ...map[string]string) (string, error)
-	DoRequest(method, url string, headers ...http.Header) (*http.Response, error)
-	DoRequestWithJSONBody(method, url string, body any, headers ...http.Header) (*http.Response, error)
+	DoRequest(method, url string, body io.Reader, headers ...http.Header) (*http.Response, error)
 }
 
 type httpClient struct {
-	*http.Client
+	http.Client
 }
 
-func NewHTTPClient(c *http.Client) Client {
+func NewHTTPClient(c http.Client) Client {
 	return &httpClient{c}
 }
 
-func (h *httpClient) DoRequest(method, url string, headers ...http.Header) (*http.Response, error) {
-	req, err := http.NewRequest(method, url, nil)
+func (h *httpClient) DoRequest(method, url string, body io.Reader, headers ...http.Header) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(headers) > 0 {
-		for k, v := range headers[0] {
-			req.Header[k] = v
-		}
-	}
-
-	return h.Do(req)
-}
-
-func (h *httpClient) DoRequestWithJSONBody(method, url string, body any, headers ...http.Header) (*http.Response, error) {
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
 	if len(headers) > 0 {
 		for k, v := range headers[0] {
 			req.Header[k] = v

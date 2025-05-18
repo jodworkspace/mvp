@@ -29,11 +29,14 @@ func NewManager(cfg *config.JWTConfig, logger *logger.ZapLogger) *Manager {
 	}
 }
 
-func (m *Manager) RegisterOAuthProvider(uc UseCase) {
+func (m *Manager) RegisterOAuthProvider(useCases ...UseCase) {
 	if m.oauthUC == nil {
 		m.oauthUC = make(map[string]UseCase)
 	}
-	m.oauthUC[uc.Provider()] = uc
+
+	for _, uc := range useCases {
+		m.oauthUC[uc.Provider()] = uc
+	}
 }
 
 func (m *Manager) GenerateToken(user *domain.User) string {
@@ -45,11 +48,11 @@ func (m *Manager) GenerateToken(user *domain.User) string {
 	)
 }
 
-func (m *Manager) ExchangeToken(provider, authorizationCode, codeVerifier, redirectURI string) error {
+func (m *Manager) ExchangeToken(provider, authorizationCode, codeVerifier, redirectURI string) (string, error) {
 	uc, exist := m.oauthUC[provider]
 	if !exist {
 		m.logger.Error("OAuthManager - ExchangeToken", zap.String("provider", provider))
-		return exception.ErrInvalidProvider
+		return "", exception.ErrInvalidProvider
 	}
 
 	return uc.ExchangeToken(authorizationCode, codeVerifier, redirectURI)

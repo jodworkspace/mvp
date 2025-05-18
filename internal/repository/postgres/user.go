@@ -3,6 +3,7 @@ package postgresrepo
 import (
 	"context"
 	"github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v5"
 	"gitlab.com/gookie/mvp/internal/domain"
 	"gitlab.com/gookie/mvp/pkg/db"
 )
@@ -19,7 +20,7 @@ func (r *UserRepository) Exists(ctx context.Context, col string, val any) (bool,
 	return exists(r.Postgres, ctx, domain.TableUser, col, val)
 }
 
-func (r *UserRepository) Insert(ctx context.Context, user *domain.User) error {
+func (r *UserRepository) Insert(ctx context.Context, user *domain.User, tx ...pgx.Tx) error {
 	query, args, err := r.QueryBuilder().
 		Insert(domain.TableUser).
 		Columns(domain.UserPublicCols...).
@@ -38,6 +39,10 @@ func (r *UserRepository) Insert(ctx context.Context, user *domain.User) error {
 		ToSql()
 	if err != nil {
 		return err
+	}
+
+	if len(tx) > 0 {
+		return tx[0].QueryRow(ctx, query, args...).Scan(&user.ID)
 	}
 
 	return r.Pool().QueryRow(ctx, query, args...).Scan(&user.ID)

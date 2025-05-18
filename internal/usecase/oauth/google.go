@@ -17,7 +17,7 @@ type GoogleUseCase struct {
 }
 
 func NewGoogleUseCase(config *config.GoogleOAuthConfig, logger *logger.ZapLogger) *GoogleUseCase {
-	client := httpx.NewHTTPClient(&http.Client{})
+	client := httpx.NewHTTPClient(http.Client{})
 
 	return &GoogleUseCase{
 		httpClient: client,
@@ -28,10 +28,6 @@ func NewGoogleUseCase(config *config.GoogleOAuthConfig, logger *logger.ZapLogger
 
 func (u *GoogleUseCase) Provider() string {
 	return "google"
-}
-
-func (u *GoogleUseCase) onboardUser(user *domain.User, federatedUser *domain.FederatedUser) error {
-	return nil
 }
 
 func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectURI string) (string, error) {
@@ -49,7 +45,7 @@ func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectU
 		return "", err
 	}
 
-	resp, err := u.httpClient.DoRequest("POST", tokenURL)
+	resp, err := u.httpClient.DoRequest("POST", tokenURL, nil)
 	if err != nil {
 		u.logger.Error("GoogleUseCase - httpClient.DoRequest", zap.Error(err))
 		return "", err
@@ -81,7 +77,7 @@ func (u *GoogleUseCase) GetUserInfo(accessToken string) (*domain.User, error) {
 		return nil, err
 	}
 
-	resp, err := u.httpClient.DoRequest("GET", userInfoURL)
+	resp, err := u.httpClient.DoRequest("GET", userInfoURL, nil)
 	if err != nil {
 		u.logger.Error("GoogleUseCase - httpClient.DoRequest", zap.Error(err))
 		return nil, err
