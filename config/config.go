@@ -46,6 +46,7 @@ type HTTPClientConfig struct {
 type JWTConfig struct {
 	Secret string        `envconfig:"jwt_secret"`
 	Expiry time.Duration `envconfig:"jwt_expire" default:"3600s"`
+	Issuer string        `envconfig:"jwt_issuer" default:"gookie.io"`
 }
 
 type LoggerConfig struct {

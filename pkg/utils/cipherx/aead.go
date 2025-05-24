@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/base64"
 	"io"
 )
 
@@ -11,6 +12,7 @@ type AEAD struct {
 	cipher.AEAD
 }
 
+// NewAEAD creates a new AEAD instance in GCM mode using the provided key.
 func NewAEAD(key []byte) (*AEAD, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -25,6 +27,7 @@ func NewAEAD(key []byte) (*AEAD, error) {
 	return &AEAD{aead}, nil
 }
 
+// Encrypt encrypts the plaintext and returns the ciphertext in Base64 format.
 func (a *AEAD) Encrypt(plaintext []byte, data ...[]byte) ([]byte, error) {
 	if len(plaintext) == 0 {
 		return []byte(""), nil
@@ -35,25 +38,34 @@ func (a *AEAD) Encrypt(plaintext []byte, data ...[]byte) ([]byte, error) {
 		return nil, err
 	}
 
-	ciphertext := a.Seal(nil, nonce, plaintext, func() []byte {
+	encrypted := a.Seal(nil, nonce, plaintext, func() []byte {
 		if len(data) > 0 {
 			return data[0]
 		}
 		return nil
 	}())
 
-	return append(nonce, ciphertext...), nil
+	ciphertext := append(nonce, encrypted...)
+	encodedCiphertext := base64.StdEncoding.EncodeToString(ciphertext)
+
+	return []byte(encodedCiphertext), nil
 }
 
-func (a *AEAD) Decrypt(ciphertextWithNonce []byte, data ...[]byte) ([]byte, error) {
-	if len(ciphertextWithNonce) == 0 {
+// Decrypt decrypts the Base64 encoded ciphertext and returns the plaintext.
+func (a *AEAD) Decrypt(encodedCiphertext []byte, data ...[]byte) ([]byte, error) {
+	if len(encodedCiphertext) == 0 {
 		return []byte(""), nil
 	}
 
-	nonce := ciphertextWithNonce[:a.NonceSize()]
-	ciphertext := ciphertextWithNonce[a.NonceSize():]
+	ciphertext, err := base64.StdEncoding.DecodeString(string(encodedCiphertext))
+	if err != nil {
+		return nil, err
+	}
 
-	plaintext, err := a.Open(nil, nonce, ciphertext, func() []byte {
+	nonce := ciphertext[:a.NonceSize()]
+	encrypted := ciphertext[a.NonceSize():]
+
+	plaintext, err := a.Open(nil, nonce, encrypted, func() []byte {
 		if len(data) > 0 {
 			return data[0]
 		}

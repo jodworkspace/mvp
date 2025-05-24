@@ -32,7 +32,7 @@ func validateStruct(s any) []ValidationError {
 	return validationErrors
 }
 
-func Bind(r *http.Request, input any) error {
+func BindWithValidation(r *http.Request, input any) error {
 	err := httpx.ReadJSON(r, input)
 	if err != nil {
 		return err

@@ -3,7 +3,7 @@ package domain
 import "time"
 
 type Task struct {
-	Base
+	ID                string        `json:"id" db:"id"`
 	Title             string        `json:"title"`
 	Details           string        `json:"details"`
 	IsCompleted       bool          `json:"is_completed"`
@@ -12,6 +12,8 @@ type Task struct {
 	EstimatedDuration time.Duration `json:"estimated_duration"`
 	DueDate           time.Time     `json:"due_date"`
 	OwnerUserID       string        `json:"owner_user_id"`
+	CreatedAt         time.Time     `json:"created_at" db:"created_at"`
+	UpdatedAt         time.Time     `json:"updated_at" db:"updated_at"`
 }
 
 const (

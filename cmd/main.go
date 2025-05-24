@@ -5,6 +5,7 @@ import (
 	"gitlab.com/gookie/mvp/internal/handler/rest"
 	v1 "gitlab.com/gookie/mvp/internal/handler/rest/v1"
 	postgresrepo "gitlab.com/gookie/mvp/internal/repository/postgres"
+	authuc "gitlab.com/gookie/mvp/internal/usecase/auth"
 	"gitlab.com/gookie/mvp/internal/usecase/oauth"
 	taskuc "gitlab.com/gookie/mvp/internal/usecase/task"
 	useruc "gitlab.com/gookie/mvp/internal/usecase/user"
@@ -31,11 +32,12 @@ func main() {
 	federatedUserRepository := postgresrepo.NewFederatedUserRepository(pgConn)
 	userUC := useruc.NewUserUseCase(userRepository, federatedUserRepository, transactionManager, zapLogger)
 
-	oauthUC := oauth.NewManager(cfg.JWT, zapLogger)
-	googleUC := oauth.NewGoogleUseCase(cfg.GoogleOAuth, zapLogger)
+	authUC := authuc.NewUseCase(cfg.JWT, zapLogger)
+	oauthUC := oauthuc.NewManager(cfg.JWT, zapLogger)
+	googleUC := oauthuc.NewGoogleUseCase(cfg.GoogleOAuth, zapLogger)
 	oauthUC.RegisterOAuthProvider(googleUC)
 
-	oauthHandler := v1.NewOAuthHandler(userUC, oauthUC, zapLogger)
+	oauthHandler := v1.NewOAuthHandler(userUC, oauthUC, authUC, zapLogger)
 
 	srv := rest.NewServer(cfg, taskHandler, oauthHandler, zapLogger)
 	srv.Run()

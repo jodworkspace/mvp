@@ -1,4 +1,4 @@
-package oauth
+package oauthuc
 
 import (
 	"encoding/json"
@@ -27,10 +27,10 @@ func NewGoogleUseCase(config *config.GoogleOAuthConfig, logger *logger.ZapLogger
 }
 
 func (u *GoogleUseCase) Provider() string {
-	return "google"
+	return domain.ProviderGoogle
 }
 
-func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectURI string) (string, error) {
+func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectURI string) ([]string, error) {
 	tokenURL, err := u.httpClient.BuildURL(u.config.TokenEndpoint, map[string]string{
 		"client_id":     u.config.ClientID,
 		"client_secret": u.config.ClientSecret,
@@ -42,13 +42,13 @@ func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectU
 
 	if err != nil {
 		u.logger.Error("GoogleUseCase - httpx.BuildURL", zap.Error(err))
-		return "", err
+		return nil, err
 	}
 
 	resp, err := u.httpClient.DoRequest("POST", tokenURL, nil)
 	if err != nil {
 		u.logger.Error("GoogleUseCase - httpClient.DoRequest", zap.Error(err))
-		return "", err
+		return nil, err
 	}
 
 	var data struct {
@@ -62,36 +62,52 @@ func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectU
 	}
 	err = json.NewDecoder(resp.Body).Decode(&data)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return data.AccessToken, nil
+	return []string{data.AccessToken, data.RefreshToken, data.IDToken}, nil
 }
 
-func (u *GoogleUseCase) GetUserInfo(accessToken string) (*domain.User, error) {
+func (u *GoogleUseCase) GetUserInfo(accessToken string) (*domain.User, *domain.FederatedUser, error) {
 	userInfoURL, err := u.httpClient.BuildURL(u.config.UserInfoEndpoint, map[string]string{
 		"access_token": accessToken,
 	})
 	if err != nil {
 		u.logger.Error("GoogleUseCase - httpx.BuildURL", zap.Error(err))
-		return nil, err
+		return nil, nil, err
 	}
 
 	resp, err := u.httpClient.DoRequest("GET", userInfoURL, nil)
 	if err != nil {
 		u.logger.Error("GoogleUseCase - httpClient.DoRequest", zap.Error(err))
-		return nil, err
+		return nil, nil, err
 	}
 
 	var userinfo struct {
-		DisplayName   string `json:"display_name"`
+		Issuer        string `json:"iss"`
+		Sub           string `json:"sub"`
+		Name          string `json:"name"`
 		Email         string `json:"email"`
 		EmailVerified bool   `json:"email_verified"`
+		Picture       string `json:"picture"`
 	}
 	err = json.NewDecoder(resp.Body).Decode(&userinfo)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return nil, nil
+	user := &domain.User{
+		DisplayName:   userinfo.Name,
+		Email:         userinfo.Email,
+		EmailVerified: userinfo.EmailVerified,
+		AvatarURL:     userinfo.Picture,
+	}
+
+	federatedUser := &domain.FederatedUser{
+		Issuer:      userinfo.Issuer,
+		ExternalID:  userinfo.Sub,
+		AccessToken: accessToken,
+	}
+
+	return user, federatedUser, nil
 }

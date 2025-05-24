@@ -30,7 +30,7 @@ func NewUserUseCase(
 	}
 }
 
-func (u *UseCase) CreateUser(ctx context.Context, user *domain.User, federatedUser *domain.FederatedUser) error {
+func (u *UseCase) OnboardUser(ctx context.Context, user *domain.User, federatedUser *domain.FederatedUser) error {
 	return u.txManager.WithTransaction(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		err := u.userRepo.Insert(ctx, user, tx)
 		if err != nil {
@@ -48,11 +48,11 @@ func (u *UseCase) CreateUser(ctx context.Context, user *domain.User, federatedUs
 
 }
 
-func (u *UseCase) CreateNewFederatedLink(ctx context.Context, federatedUser *domain.FederatedUser) error {
+func (u *UseCase) CreateFederatedLink(ctx context.Context, federatedUser *domain.FederatedUser) error {
 	err := u.federatedUserRepo.Insert(ctx, federatedUser)
 	if err != nil {
 		u.logger.Error(
-			"User - UseCase - CreateNewFederatedLink - u.federatedUserRepo.Insert",
+			"User - UseCase - CreateFederatedLink - u.federatedUserRepo.Insert",
 			zap.String("user_id", federatedUser.UserID),
 			zap.Error(err),
 		)

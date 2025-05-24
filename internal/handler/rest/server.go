@@ -90,8 +90,7 @@ func (s *Server) RestMux() *chi.Mux {
 	})
 
 	r.Get("/api/v1/userinfo", s.oauthHandler.GetUserInfo)
-	r.Post("/api/v1/oauth/authorize", s.oauthHandler.Authorize)
-	r.Post("/api/v1/oauth/token", s.oauthHandler.ExchangeToken)
+	r.Post("/api/v1/login", s.oauthHandler.Login)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(mw.Auth([]byte(s.cfg.JWT.Secret)))

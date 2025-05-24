@@ -1,18 +1,17 @@
-package oauth
+package oauthuc
 
 import (
 	"gitlab.com/gookie/mvp/config"
 	"gitlab.com/gookie/mvp/internal/domain"
 	"gitlab.com/gookie/mvp/pkg/logger"
 	"gitlab.com/gookie/mvp/pkg/utils/exception"
-	"gitlab.com/gookie/mvp/pkg/utils/jwtx"
 	"go.uber.org/zap"
 )
 
 type UseCase interface {
 	Provider() string
-	ExchangeToken(authorizationCode, codeVerifier, redirectURI string) (string, error)
-	GetUserInfo(accessToken string) (*domain.User, error)
+	ExchangeToken(authorizationCode, codeVerifier, redirectURI string) ([]string, error)
+	GetUserInfo(accessToken string) (*domain.User, *domain.FederatedUser, error)
 }
 
 type Manager struct {
@@ -39,29 +38,20 @@ func (m *Manager) RegisterOAuthProvider(useCases ...UseCase) {
 	}
 }
 
-func (m *Manager) GenerateToken(user *domain.User) string {
-	return jwtx.GenerateToken(
-		m.cfg.Expiry,
-		[]byte(m.cfg.Secret),
-		jwtx.WithIssuer(""),
-		jwtx.WithSubject(user.ID),
-	)
-}
-
-func (m *Manager) ExchangeToken(provider, authorizationCode, codeVerifier, redirectURI string) (string, error) {
+func (m *Manager) ExchangeToken(provider, authorizationCode, codeVerifier, redirectURI string) ([]string, error) {
 	uc, exist := m.oauthUC[provider]
 	if !exist {
-		m.logger.Error("OAuthManager - ExchangeToken", zap.String("provider", provider))
-		return "", exception.ErrInvalidProvider
+		m.logger.Error("OAuthManager - Login", zap.String("provider", provider))
+		return nil, exception.ErrInvalidProvider
 	}
 
 	return uc.ExchangeToken(authorizationCode, codeVerifier, redirectURI)
 }
 
-func (m *Manager) GetUserInfo(provider, accessToken string) (*domain.User, error) {
+func (m *Manager) GetUserInfo(provider, accessToken string) (*domain.User, *domain.FederatedUser, error) {
 	uc, exist := m.oauthUC[provider]
 	if !exist {
-		return nil, exception.ErrInvalidProvider
+		return nil, nil, exception.ErrInvalidProvider
 	}
 
 	return uc.GetUserInfo(accessToken)

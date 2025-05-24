@@ -22,7 +22,6 @@ func (r *FederatedUserRepository) Insert(ctx context.Context, federatedUser *dom
 		Insert(domain.TableFederatedUser).
 		Columns(domain.FederatedUserAllCols...).
 		Values(
-			federatedUser.ID,
 			federatedUser.UserID,
 			federatedUser.Issuer,
 			federatedUser.ExternalID,
@@ -31,14 +30,14 @@ func (r *FederatedUserRepository) Insert(ctx context.Context, federatedUser *dom
 			federatedUser.CreatedAt,
 			federatedUser.UpdatedAt,
 		).
-		Suffix("RETURNING id").
+		Suffix("RETURNING user_id").
 		ToSql()
 	if err != nil {
 		return err
 	}
 
 	if len(tx) > 0 {
-		return tx[0].QueryRow(ctx, query, args...).Scan(&federatedUser.ID)
+		return tx[0].QueryRow(ctx, query, args...).Scan(&federatedUser.UserID)
 	}
 
 	return r.Pool().QueryRow(ctx, query, args...).Scan(&federatedUser.UserID)
