@@ -2,43 +2,58 @@ package useruc
 
 import (
 	"context"
+	"errors"
 	"github.com/jackc/pgx/v5"
 	"gitlab.com/gookie/mvp/internal/domain"
 	postgresrepo "gitlab.com/gookie/mvp/internal/repository/postgres"
 	"gitlab.com/gookie/mvp/pkg/logger"
+	"gitlab.com/gookie/mvp/pkg/utils/errorx"
 	"go.uber.org/zap"
 )
 
 type UseCase struct {
-	userRepo          UserRepository
-	federatedUserRepo FederatedUserRepository
-	txManager         *postgresrepo.TransactionManager
-	logger            *logger.ZapLogger
+	userRepo  UserRepository
+	linkRepo  LinkRepository
+	txManager *postgresrepo.TransactionManager
+	logger    *logger.ZapLogger
 }
 
 func NewUserUseCase(
 	userRepo UserRepository,
-	federatedUserRepo FederatedUserRepository,
+	federatedUserRepo LinkRepository,
 	txManager *postgresrepo.TransactionManager,
 	logger *logger.ZapLogger,
 ) *UseCase {
 	return &UseCase{
-		userRepo:          userRepo,
-		federatedUserRepo: federatedUserRepo,
-		txManager:         txManager,
-		logger:            logger,
+		userRepo:  userRepo,
+		linkRepo:  federatedUserRepo,
+		txManager: txManager,
+		logger:    logger,
 	}
 }
 
-func (u *UseCase) OnboardUser(ctx context.Context, user *domain.User, federatedUser *domain.FederatedUser) error {
+func (u *UseCase) ExistsByEmail(ctx context.Context, email string) (bool, error) {
+	exists, err := u.userRepo.Exists(ctx, domain.ColEmail, email)
+	if err != nil {
+		u.logger.Error(
+			"User - UseCase - ExistsByEmail - u.userRepo.Exists",
+			zap.String("email", email),
+			zap.Error(err),
+		)
+		return false, err
+	}
+
+	return exists, nil
+}
+
+func (u *UseCase) CreateUserWithLink(ctx context.Context, user *domain.User, link *domain.Link) error {
 	return u.txManager.WithTransaction(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		err := u.userRepo.Insert(ctx, user, tx)
 		if err != nil {
 			return err
 		}
 
-		federatedUser.UserID = user.ID
-		err = u.federatedUserRepo.Insert(ctx, federatedUser, tx)
+		err = u.linkRepo.Insert(ctx, link, tx)
 		if err != nil {
 			return err
 		}
@@ -48,12 +63,12 @@ func (u *UseCase) OnboardUser(ctx context.Context, user *domain.User, federatedU
 
 }
 
-func (u *UseCase) CreateFederatedLink(ctx context.Context, federatedUser *domain.FederatedUser) error {
-	err := u.federatedUserRepo.Insert(ctx, federatedUser)
+func (u *UseCase) CreateLink(ctx context.Context, link *domain.Link) error {
+	err := u.linkRepo.Insert(ctx, link)
 	if err != nil {
 		u.logger.Error(
-			"User - UseCase - CreateFederatedLink - u.federatedUserRepo.Insert",
-			zap.String("user_id", federatedUser.UserID),
+			"User - UseCase - CreateLink - u.linkRepo.Insert",
+			zap.String("user_id", link.UserID),
 			zap.Error(err),
 		)
 		return err
@@ -62,6 +77,21 @@ func (u *UseCase) CreateFederatedLink(ctx context.Context, federatedUser *domain
 	return nil
 }
 
-func (u *UseCase) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
-	return nil, nil
+func (u *UseCase) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+	user, err := u.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		u.logger.Error(
+			"User - UseCase - GetByEmail - u.userRepo.GetByEmail",
+			zap.String("email", email),
+			zap.Error(err),
+		)
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errorx.ErrUserNotFound
+		}
+
+		return nil, err
+	}
+
+	return user, nil
 }

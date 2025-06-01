@@ -8,6 +8,7 @@ import (
 	"gitlab.com/gookie/mvp/pkg/utils/httpx"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 type GoogleUseCase struct {
@@ -30,7 +31,7 @@ func (u *GoogleUseCase) Provider() string {
 	return domain.ProviderGoogle
 }
 
-func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectURI string) ([]string, error) {
+func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error) {
 	tokenURL, err := u.httpClient.BuildURL(u.config.TokenEndpoint, map[string]string{
 		"client_id":     u.config.ClientID,
 		"client_secret": u.config.ClientSecret,
@@ -52,39 +53,44 @@ func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectU
 	}
 
 	var data struct {
-		AccessToken           string `json:"access_token"`
-		RefreshToken          string `json:"refresh_token"`
-		TokenType             string `json:"token_type"`
-		ExpiresIn             int    `json:"expires_in"`
-		RefreshTokenExpiresIn int    `json:"refresh_token_expires_in"`
-		Scope                 string `json:"scope"`
-		IDToken               string `json:"id_token"`
+		AccessToken           string        `json:"access_token"`
+		RefreshToken          string        `json:"refresh_token"`
+		TokenType             string        `json:"token_type"`
+		ExpiresIn             time.Duration `json:"expires_in"`
+		RefreshTokenExpiresIn time.Duration `json:"refresh_token_expires_in"`
+		Scope                 string        `json:"scope"`
+		IDToken               string        `json:"id_token"`
 	}
 	err = json.NewDecoder(resp.Body).Decode(&data)
 	if err != nil {
 		return nil, err
 	}
 
-	return []string{data.AccessToken, data.RefreshToken, data.IDToken}, nil
+	return &domain.Link{
+		AccessToken:           data.AccessToken,
+		RefreshToken:          data.RefreshToken,
+		AccessTokenExpiredAt:  time.Now().Add(data.ExpiresIn),
+		RefreshTokenExpiredAt: time.Now().Add(data.ExpiresIn),
+	}, nil
 }
 
-func (u *GoogleUseCase) GetUserInfo(accessToken string) (*domain.User, *domain.FederatedUser, error) {
+func (u *GoogleUseCase) GetUserInfo(link *domain.Link) (*domain.User, error) {
 	userInfoURL, err := u.httpClient.BuildURL(u.config.UserInfoEndpoint, map[string]string{
-		"access_token": accessToken,
+		"access_token": link.AccessToken,
 	})
 	if err != nil {
 		u.logger.Error("GoogleUseCase - httpx.BuildURL", zap.Error(err))
-		return nil, nil, err
+		return nil, err
 	}
 
 	resp, err := u.httpClient.DoRequest("GET", userInfoURL, nil)
 	if err != nil {
 		u.logger.Error("GoogleUseCase - httpClient.DoRequest", zap.Error(err))
-		return nil, nil, err
+		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var userinfo struct {
-		Issuer        string `json:"iss"`
 		Sub           string `json:"sub"`
 		Name          string `json:"name"`
 		Email         string `json:"email"`
@@ -93,7 +99,7 @@ func (u *GoogleUseCase) GetUserInfo(accessToken string) (*domain.User, *domain.F
 	}
 	err = json.NewDecoder(resp.Body).Decode(&userinfo)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	user := &domain.User{
@@ -103,11 +109,6 @@ func (u *GoogleUseCase) GetUserInfo(accessToken string) (*domain.User, *domain.F
 		AvatarURL:     userinfo.Picture,
 	}
 
-	federatedUser := &domain.FederatedUser{
-		Issuer:      userinfo.Issuer,
-		ExternalID:  userinfo.Sub,
-		AccessToken: accessToken,
-	}
-
-	return user, federatedUser, nil
+	link.ExternalID = userinfo.Sub
+	return user, nil
 }

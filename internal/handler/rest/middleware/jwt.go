@@ -9,7 +9,7 @@ import (
 
 type Middleware func(next http.Handler) http.Handler
 
-func Auth(secret []byte, issuer ...string) Middleware {
+func ValidateToken(secret []byte, issuer ...string) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var accessToken string
@@ -23,7 +23,7 @@ func Auth(secret []byte, issuer ...string) Middleware {
 			if accessToken == "" {
 				_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 					StatusCode: http.StatusUnauthorized,
-					Message:    "",
+					Message:    "invalid authorization header",
 				})
 				return
 			}

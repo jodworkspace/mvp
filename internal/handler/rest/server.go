@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"gitlab.com/gookie/mvp/config"
+	"gitlab.com/gookie/mvp/internal/domain"
 	mw "gitlab.com/gookie/mvp/internal/handler/rest/middleware"
 	v1 "gitlab.com/gookie/mvp/internal/handler/rest/v1"
 	"gitlab.com/gookie/mvp/pkg/logger"
@@ -76,10 +77,10 @@ func (s *Server) RestMux() *chi.Mux {
 	r.Use(middleware.Recoverer)
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"*"},
-		AllowCredentials: false,
+		AllowedOrigins:   s.cfg.CORS.AllowedOrigins,
+		AllowedMethods:   s.cfg.CORS.AllowedMethods,
+		AllowedHeaders:   s.cfg.CORS.AllowedHeaders,
+		AllowCredentials: s.cfg.CORS.AllowCredentials,
 		MaxAge:           300,
 	}))
 
@@ -89,14 +90,18 @@ func (s *Server) RestMux() *chi.Mux {
 		_, _ = w.Write(data)
 	})
 
-	r.Get("/api/v1/userinfo", s.oauthHandler.GetUserInfo)
-	r.Post("/api/v1/login", s.oauthHandler.Login)
+	r.Post("/api/v1/login/google", s.oauthHandler.Login(domain.ProviderGoogle))
+	r.Post("/api/v1/login/github", s.oauthHandler.Login(domain.ProviderGitHub))
 
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Use(mw.Auth([]byte(s.cfg.JWT.Secret)))
+		r.Use(mw.ValidateToken([]byte(s.cfg.Token.Secret)))
+
+		r.Get("/userinfo", s.oauthHandler.GetUserInfo)
 
 		r.With(mw.Pagination).Get("/tasks", s.taskHandler.List)
 		r.Post("/tasks", s.taskHandler.Create)
+		r.Get("/tasks/{id}", s.taskHandler.Get)
+		r.Put("/tasks/{id}", s.taskHandler.Update)
 		r.Delete("/tasks/{id}", s.taskHandler.Delete)
 	})
 
@@ -105,5 +110,5 @@ func (s *Server) RestMux() *chi.Mux {
 }
 
 func Return404(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Route not found", http.StatusNotFound)
+	http.Error(w, "not found", http.StatusNotFound)
 }

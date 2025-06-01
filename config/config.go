@@ -25,7 +25,8 @@ func LoadConfig(envFiles ...string) *Config {
 
 type Config struct {
 	Server      *ServerConfig
-	JWT         *JWTConfig
+	CORS        *CORSConfig  `envconfig:"cors"`
+	Token       *TokenConfig `envconfig:"token"`
 	Logger      *LoggerConfig
 	HTTPClient  *HTTPClientConfig
 	GoogleOAuth *GoogleOAuthConfig
@@ -39,14 +40,24 @@ type ServerConfig struct {
 	Port    string `envconfig:"port" default:"9731"`
 }
 
+type CORSConfig struct {
+	AllowedOrigins   []string `envconfig:"allowed_origins" default:"*"`
+	AllowedMethods   []string `envconfig:"allowed_methods" default:"GET,POST,PUT,PATCH,DELETE,OPTIONS"`
+	AllowedHeaders   []string `envconfig:"allowed_headers" default:"*"`
+	AllowCredentials bool     `envconfig:"allow_credentials" default:"false"`
+	ExposedHeaders   []string `envconfig:"exposed_headers" default:"*"`
+}
+
 type HTTPClientConfig struct {
 	Timeout time.Duration `envconfig:"timeout" default:"10s"`
 }
 
-type JWTConfig struct {
-	Secret string        `envconfig:"jwt_secret"`
-	Expiry time.Duration `envconfig:"jwt_expire" default:"3600s"`
-	Issuer string        `envconfig:"jwt_issuer" default:"gookie.io"`
+type TokenConfig struct {
+	Secret        string        `envconfig:"secret" required:"true"`
+	RefreshSecret string        `envconfig:"refresh_secret" required:"true"`
+	ShortExpiry   time.Duration `envconfig:"short_expiry" default:"3600s"`   // 1 hour
+	LongExpiry    time.Duration `envconfig:"long_expiry" default:"2592000s"` // 30 days
+	Issuer        string        `envconfig:"issuer" default:"gookie.io"`
 }
 
 type LoggerConfig struct {

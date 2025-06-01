@@ -7,9 +7,11 @@ import (
 )
 
 type UserRepository interface {
-	Insert(ctx context.Context, user *domain.User, tx ...pgx.Tx) error
+	Exists(ctx context.Context, col string, val any) (bool, error)
+	Insert(context.Context, *domain.User, ...pgx.Tx) error
+	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 }
 
-type FederatedUserRepository interface {
-	Insert(ctx context.Context, user *domain.FederatedUser, tx ...pgx.Tx) error
+type LinkRepository interface {
+	Insert(context.Context, *domain.Link, ...pgx.Tx) error
 }

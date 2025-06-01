@@ -29,15 +29,16 @@ func main() {
 	taskHandler := v1.NewTaskHandler(taskUC, zapLogger)
 
 	userRepository := postgresrepo.NewUserRepository(pgConn)
-	federatedUserRepository := postgresrepo.NewFederatedUserRepository(pgConn)
+	federatedUserRepository := postgresrepo.NewLinkRepository(pgConn)
 	userUC := useruc.NewUserUseCase(userRepository, federatedUserRepository, transactionManager, zapLogger)
 
-	authUC := authuc.NewUseCase(cfg.JWT, zapLogger)
-	oauthUC := oauthuc.NewManager(cfg.JWT, zapLogger)
 	googleUC := oauthuc.NewGoogleUseCase(cfg.GoogleOAuth, zapLogger)
-	oauthUC.RegisterOAuthProvider(googleUC)
+	oauthMng := oauthuc.NewManager(cfg.Token, zapLogger)
+	oauthMng.RegisterOAuthProvider(googleUC)
 
-	oauthHandler := v1.NewOAuthHandler(userUC, oauthUC, authUC, zapLogger)
+	authUC := authuc.NewUseCase(cfg.Token, zapLogger)
+
+	oauthHandler := v1.NewOAuthHandler(userUC, oauthMng, authUC, zapLogger)
 
 	srv := rest.NewServer(cfg, taskHandler, oauthHandler, zapLogger)
 	srv.Run()

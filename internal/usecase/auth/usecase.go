@@ -7,24 +7,36 @@ import (
 )
 
 type UseCase struct {
-	cfg    *config.JWTConfig
+	cfg    *config.TokenConfig
 	logger *logger.ZapLogger
 }
 
-func NewUseCase(cfg *config.JWTConfig, logger *logger.ZapLogger) *UseCase {
+func NewUseCase(cfg *config.TokenConfig, logger *logger.ZapLogger) *UseCase {
 	return &UseCase{
 		cfg:    cfg,
 		logger: logger,
 	}
 }
 
-func (u *UseCase) GenerateToken(sub string) string {
+func (u *UseCase) GenerateAccessToken(sub string) string {
 	accessToken := jwtx.GenerateToken(
-		u.cfg.Expiry,
 		[]byte(u.cfg.Secret),
+		u.cfg.ShortExpiry,
 		jwtx.WithIssuer(u.cfg.Issuer),
 		jwtx.WithSubject(sub),
 	)
 
 	return accessToken
+}
+
+func (u *UseCase) GenerateRefreshToken(sub string) string {
+	refreshToken := jwtx.GenerateToken(
+		[]byte(u.cfg.RefreshSecret),
+		u.cfg.LongExpiry,
+		jwtx.WithIssuer(u.cfg.Issuer),
+		jwtx.WithSubject(sub),
+		jwtx.WithAudience("gookie-refresh"),
+	)
+
+	return refreshToken
 }

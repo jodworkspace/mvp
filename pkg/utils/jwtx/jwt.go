@@ -9,6 +9,7 @@ import (
 
 type Claims struct {
 	jwt.RegisteredClaims
+	Email string `json:"email,omitempty"`
 }
 
 type Option func(claims *Claims)
@@ -31,10 +32,10 @@ func WithAudience(audience string) Option {
 	}
 }
 
-func GenerateToken(expiry time.Duration, secret []byte, opts ...Option) string {
+func GenerateToken(secret []byte, expiry time.Duration, opts ...Option) string {
 	now := time.Now()
 	claims := Claims{
-		jwt.RegisteredClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        uuid.NewString(),
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(expiry)),
@@ -54,15 +55,15 @@ func GenerateToken(expiry time.Duration, secret []byte, opts ...Option) string {
 	return signedToken
 }
 
-func ParseToken(tokenString string, secret []byte, issuer ...string) (*jwt.RegisteredClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
+func ParseToken(tokenString string, secret []byte, issuer ...string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (any, error) {
 		return secret, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	claims, ok := token.Claims.(*jwt.RegisteredClaims)
+	claims, ok := token.Claims.(*Claims)
 	if ok && token.Valid {
 		return claims, nil
 	}

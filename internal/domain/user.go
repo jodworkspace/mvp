@@ -16,18 +16,20 @@ type User struct {
 	UpdatedAt         time.Time `json:"updated_at" db:"updated_at"`
 }
 
-type FederatedUser struct {
-	UserID       string    `json:"user_id" db:"user_id"`
-	Issuer       string    `json:"issuer" db:"issuer"`
-	ExternalID   string    `json:"external_id" db:"external_id"`
-	AccessToken  string    `json:"access_token" db:"access_token"`
-	RefreshToken string    `json:"refresh_token" db:"refresh_token"`
-	CreatedAt    time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
+type Link struct {
+	Issuer                string    `json:"issuer" db:"issuer"`           // PK
+	ExternalID            string    `json:"external_id" db:"external_id"` // PK
+	UserID                string    `json:"user_id" db:"user_id"`
+	AccessToken           string    `json:"access_token" db:"access_token"`
+	RefreshToken          string    `json:"refresh_token" db:"refresh_token"`
+	AccessTokenExpiredAt  time.Time `json:"access_token_expired_at" db:"access_token_expired_at"`
+	RefreshTokenExpiredAt time.Time `json:"refresh_token_expired_at" db:"refresh_token_expired_at"`
+	CreatedAt             time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at" db:"updated_at"`
 }
 
 const (
-	TableUser            = "users"
+	TableUsers           = "users"
 	ColDisplayName       = "display_name"
 	ColEmail             = "email"
 	ColEmailVerified     = "email_verified"
@@ -37,12 +39,14 @@ const (
 	ColPreferredLanguage = "preferred_language"
 	ColActive            = "active"
 
-	TableFederatedUser = "federated_users"
-	ColUserID          = "user_id"
-	ColIssuer          = "issuer"
-	ColExternalID      = "external_id"
-	ColAccessToken     = "access_token"
-	ColRefreshToken    = "refresh_token"
+	TableLinks               = "links"
+	ColUserID                = "user_id"
+	ColIssuer                = "issuer"
+	ColExternalID            = "external_id"
+	ColAccessToken           = "access_token"
+	ColRefreshToken          = "refresh_token"
+	ColAccessTokenExpiresAt  = "access_token_expires_at"
+	ColRefreshTokenExpiresAt = "refresh_token_expires_at"
 )
 
 var (
@@ -63,7 +67,7 @@ var (
 		ColPIN,
 	}
 
-	FederatedUserAllCols = []string{
+	LinkAllCols = []string{
 		ColUserID,
 		ColIssuer,
 		ColExternalID,
@@ -71,5 +75,7 @@ var (
 		ColRefreshToken,
 		ColCreatedAt,
 		ColUpdatedAt,
+		ColAccessTokenExpiresAt,
+		ColRefreshTokenExpiresAt,
 	}
 )

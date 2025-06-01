@@ -17,12 +17,12 @@ func NewUserRepository(conn db.Postgres) *UserRepository {
 }
 
 func (r *UserRepository) Exists(ctx context.Context, col string, val any) (bool, error) {
-	return exists(r.Postgres, ctx, domain.TableUser, col, val)
+	return exists(r.Postgres, ctx, domain.TableUsers, col, val)
 }
 
 func (r *UserRepository) Insert(ctx context.Context, user *domain.User, tx ...pgx.Tx) error {
 	query, args, err := r.QueryBuilder().
-		Insert(domain.TableUser).
+		Insert(domain.TableUsers).
 		Columns(domain.UserPublicCols...).
 		Values(
 			user.ID,
@@ -51,8 +51,37 @@ func (r *UserRepository) Insert(ctx context.Context, user *domain.User, tx ...pg
 func (r *UserRepository) Get(ctx context.Context, id string) (*domain.User, error) {
 	query, args, err := r.QueryBuilder().
 		Select(domain.UserPublicCols...).
-		From(domain.TableUser).
+		From(domain.TableUsers).
 		Where(squirrel.Eq{domain.ColID: id}).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	var user domain.User
+	err = r.Pool().QueryRow(ctx, query, args...).Scan(
+		&user.ID,
+		&user.DisplayName,
+		&user.Email,
+		&user.EmailVerified,
+		&user.AvatarURL,
+		&user.PreferredLanguage,
+		&user.Active,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+	query, args, err := r.QueryBuilder().
+		Select(domain.UserPublicCols...).
+		From(domain.TableUsers).
+		Where(squirrel.Eq{domain.ColEmail: email}).
 		ToSql()
 	if err != nil {
 		return nil, err
