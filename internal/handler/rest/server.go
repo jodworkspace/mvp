@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+
 	"gitlab.com/gookie/mvp/config"
 	"gitlab.com/gookie/mvp/internal/domain"
 	mw "gitlab.com/gookie/mvp/internal/handler/rest/middleware"
@@ -19,7 +20,8 @@ import (
 )
 
 type Server struct {
-	cfg          *config.Config
+	cfg *config.Config
+
 	taskHandler  *v1.TaskHandler
 	oauthHandler *v1.OAuthHandler
 	logger       *logger.ZapLogger
@@ -31,6 +33,7 @@ func NewServer(
 	oauthHandler *v1.OAuthHandler,
 	logger *logger.ZapLogger,
 ) *Server {
+
 	return &Server{
 		cfg:          cfg,
 		taskHandler:  taskHandler,
@@ -94,7 +97,7 @@ func (s *Server) RestMux() *chi.Mux {
 	r.Post("/api/v1/login/github", s.oauthHandler.Login(domain.ProviderGitHub))
 
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Use(mw.ValidateToken([]byte(s.cfg.Token.Secret)))
+		r.Use(mw.TokenAuth([]byte(s.cfg.Token.Secret)))
 
 		r.Get("/userinfo", s.oauthHandler.GetUserInfo)
 

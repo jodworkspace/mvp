@@ -24,14 +24,14 @@ func LoadConfig(envFiles ...string) *Config {
 }
 
 type Config struct {
-	Server      *ServerConfig
-	CORS        *CORSConfig  `envconfig:"cors"`
-	Token       *TokenConfig `envconfig:"token"`
-	Logger      *LoggerConfig
-	HTTPClient  *HTTPClientConfig
-	GoogleOAuth *GoogleOAuthConfig
-	Redis       *RedisConfig
-	Postgres    *PostgresConfig
+	Server        *ServerConfig
+	SessionConfig *SessionConfig     `envconfig:"session"`
+	CORS          *CORSConfig        `envconfig:"cors"`
+	Token         *TokenConfig       `envconfig:"token"`
+	Logger        *LoggerConfig      `envconfig:"logger"`
+	GoogleOAuth   *GoogleOAuthConfig `envconfig:"google_oauth"`
+	Redis         *RedisConfig       `envconfig:"redis"`
+	Postgres      *PostgresConfig    `envconfig:"postgres"`
 }
 
 type ServerConfig struct {
@@ -40,16 +40,22 @@ type ServerConfig struct {
 	Port    string `envconfig:"port" default:"9731"`
 }
 
+type SessionConfig struct {
+	Secret        string `envconfig:"secret" required:"true"`
+	Name          string `envconfig:"name" default:"session"`
+	RedisHost     string `envconfig:"redis_host" default:"localhost"`
+	RedisPort     uint16 `envconfig:"redis_port" default:"6379"`
+	RedisDB       int    `envconfig:"redis_db" default:"0"`
+	RedisUsername string `envconfig:"redis_username" default:"default"`
+	RedisPassword string `envconfig:"redis_password" default:""`
+}
+
 type CORSConfig struct {
 	AllowedOrigins   []string `envconfig:"allowed_origins" default:"*"`
 	AllowedMethods   []string `envconfig:"allowed_methods" default:"GET,POST,PUT,PATCH,DELETE,OPTIONS"`
 	AllowedHeaders   []string `envconfig:"allowed_headers" default:"*"`
 	AllowCredentials bool     `envconfig:"allow_credentials" default:"false"`
 	ExposedHeaders   []string `envconfig:"exposed_headers" default:"*"`
-}
-
-type HTTPClientConfig struct {
-	Timeout time.Duration `envconfig:"timeout" default:"10s"`
 }
 
 type TokenConfig struct {
@@ -73,8 +79,11 @@ type GoogleOAuthConfig struct {
 }
 
 type RedisConfig struct {
-	Host string `envconfig:"redis_host" default:"localhost"`
-	Port uint16 `envconfig:"redis_port" default:"6379"`
+	Host     string `envconfig:"redis_host" default:"localhost"`
+	Port     uint16 `envconfig:"redis_port" default:"6379"`
+	Username string `envconfig:"redis_username" default:"default"`
+	Password string `envconfig:"redis_password" default:""`
+	DB       int    `envconfig:"redis_db" default:"0"`
 }
 
 type PostgresConfig struct {

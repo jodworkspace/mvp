@@ -99,26 +99,12 @@ func (h *OAuthHandler) Login(provider string) http.HandlerFunc {
 				})
 				return
 			}
-		} else {
-			user.ID = userDB.ID
 		}
-
-		accessToken := h.authUC.GenerateAccessToken(user.ID)
-		http.SetCookie(w, &http.Cookie{
-			Name:     "refresh_token",
-			Value:    "",
-			HttpOnly: true,
-			SameSite: http.SameSiteNoneMode,
-			Secure:   false, // HTTPS
-		})
 
 		_ = httpx.WriteJSON(w, http.StatusOK, httpx.JSON{
 			"code":    http.StatusOK,
 			"message": "success",
-			"data": httpx.JSON{
-				"accessToken": accessToken,
-				"expiresIn":   3600,
-			},
+			"data":    httpx.JSON{},
 		})
 	}
 }
