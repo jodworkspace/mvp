@@ -7,6 +7,7 @@ import (
 	"gitlab.com/gookie/mvp/internal/domain"
 	postgresrepo "gitlab.com/gookie/mvp/internal/repository/postgres"
 	"gitlab.com/gookie/mvp/pkg/logger"
+	"gitlab.com/gookie/mvp/pkg/utils/cipherx"
 	"gitlab.com/gookie/mvp/pkg/utils/errorx"
 	"go.uber.org/zap"
 )
@@ -15,6 +16,7 @@ type UseCase struct {
 	userRepo  UserRepository
 	linkRepo  LinkRepository
 	txManager *postgresrepo.TransactionManager
+	aead      *cipherx.AEAD
 	logger    *logger.ZapLogger
 }
 
@@ -22,12 +24,14 @@ func NewUserUseCase(
 	userRepo UserRepository,
 	federatedUserRepo LinkRepository,
 	txManager *postgresrepo.TransactionManager,
+	aead *cipherx.AEAD,
 	logger *logger.ZapLogger,
 ) *UseCase {
 	return &UseCase{
 		userRepo:  userRepo,
 		linkRepo:  federatedUserRepo,
 		txManager: txManager,
+		aead:      aead,
 		logger:    logger,
 	}
 }
@@ -60,7 +64,6 @@ func (u *UseCase) CreateUserWithLink(ctx context.Context, user *domain.User, lin
 
 		return nil
 	})
-
 }
 
 func (u *UseCase) CreateLink(ctx context.Context, link *domain.Link) error {

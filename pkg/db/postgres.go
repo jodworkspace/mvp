@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Postgres interface {
+type PostgresConn interface {
 	Pool() *pgxpool.Pool
 	QueryBuilder() squirrel.StatementBuilderType
 }
@@ -24,19 +24,16 @@ func (c *postgresConn) QueryBuilder() squirrel.StatementBuilderType {
 	return c.SQLBuilder
 }
 
-func MustNewPostgresConnection(dsn string, options ...PostgresOption) Postgres {
+func MustNewPostgresConnection(dsn string, options ...PostgresOption) PostgresConn {
 	c, err := NewPostgresConnection(dsn, options...)
 	if err != nil {
 		panic(err)
 	}
+
 	return c
 }
 
-func NewPostgresConnection(dsn string, options ...PostgresOption) (Postgres, error) {
-	pgc := &postgresConn{
-		SQLBuilder: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
-	}
-
+func NewPostgresConnection(dsn string, options ...PostgresOption) (PostgresConn, error) {
 	dbConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, err
@@ -46,12 +43,22 @@ func NewPostgresConnection(dsn string, options ...PostgresOption) (Postgres, err
 		opt(dbConfig)
 	}
 
-	pgc.PgxPool, err = pgxpool.NewWithConfig(context.Background(), dbConfig)
-	if err == nil {
-		return pgc, nil
+	pool, err := pgxpool.NewWithConfig(context.Background(), dbConfig)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, err
+	if err = pool.Ping(context.Background()); err != nil {
+		pool.Close()
+		return nil, err
+	}
+
+	pgc := &postgresConn{
+		SQLBuilder: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
+		PgxPool:    pool,
+	}
+
+	return pgc, nil
 }
 
 type PostgresOption func(*pgxpool.Config)

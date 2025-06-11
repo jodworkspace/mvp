@@ -27,6 +27,15 @@ func NewAEAD(key []byte) (*AEAD, error) {
 	return &AEAD{aead}, nil
 }
 
+func MustNewAEAD(key []byte) *AEAD {
+	aead, err := NewAEAD(key)
+	if err != nil {
+		panic(err)
+	}
+
+	return aead
+}
+
 // Encrypt encrypts the plaintext and returns the ciphertext in Base64 format.
 func (a *AEAD) Encrypt(plaintext []byte, data ...[]byte) ([]byte, error) {
 	if len(plaintext) == 0 {

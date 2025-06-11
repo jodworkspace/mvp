@@ -7,10 +7,10 @@ import (
 )
 
 type TransactionManager struct {
-	db db.Postgres
+	db db.PostgresConn
 }
 
-func NewTransactionManager(db db.Postgres) *TransactionManager {
+func NewTransactionManager(db db.PostgresConn) *TransactionManager {
 	return &TransactionManager{
 		db: db,
 	}

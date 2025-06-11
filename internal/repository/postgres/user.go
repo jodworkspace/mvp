@@ -9,15 +9,15 @@ import (
 )
 
 type UserRepository struct {
-	db.Postgres
+	db.PostgresConn
 }
 
-func NewUserRepository(conn db.Postgres) *UserRepository {
+func NewUserRepository(conn db.PostgresConn) *UserRepository {
 	return &UserRepository{conn}
 }
 
 func (r *UserRepository) Exists(ctx context.Context, col string, val any) (bool, error) {
-	return exists(r.Postgres, ctx, domain.TableUsers, col, val)
+	return exists(r.PostgresConn, ctx, domain.TableUsers, col, val)
 }
 
 func (r *UserRepository) Insert(ctx context.Context, user *domain.User, tx ...pgx.Tx) error {

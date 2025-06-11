@@ -8,10 +8,10 @@ import (
 )
 
 type TaskRepository struct {
-	db.Postgres
+	db.PostgresConn
 }
 
-func NewTaskRepository(conn db.Postgres) *TaskRepository {
+func NewTaskRepository(conn db.PostgresConn) *TaskRepository {
 	return &TaskRepository{conn}
 }
 

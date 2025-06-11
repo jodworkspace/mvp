@@ -8,12 +8,12 @@ import (
 )
 
 type LinkRepository struct {
-	db.Postgres
+	db.PostgresConn
 }
 
-func NewLinkRepository(conn db.Postgres) *LinkRepository {
+func NewLinkRepository(conn db.PostgresConn) *LinkRepository {
 	return &LinkRepository{
-		Postgres: conn,
+		PostgresConn: conn,
 	}
 }
 

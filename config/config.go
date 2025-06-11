@@ -38,6 +38,7 @@ type ServerConfig struct {
 	Version string `envconfig:"version" default:"0.0.1"`
 	Host    string `envconfig:"host" default:"localhost"`
 	Port    string `envconfig:"port" default:"9731"`
+	AESKey  string `envconfig:"aes_key" required:"true"`
 }
 
 type SessionConfig struct {
@@ -87,11 +88,11 @@ type RedisConfig struct {
 }
 
 type PostgresConfig struct {
-	Host     string `envconfig:"pg_host" default:"localhost"`
-	Port     uint16 `envconfig:"pg_port" default:"5432"`
-	Username string `envconfig:"pg_username" required:"true"`
-	Password string `envconfig:"pg_password" required:"true"`
-	Database string `envconfig:"pg_database" required:"true"`
+	Host     string `envconfig:"host" default:"localhost"`
+	Port     uint16 `envconfig:"port" default:"5432"`
+	Username string `envconfig:"username" required:"true"`
+	Password string `envconfig:"password" required:"true"`
+	Database string `envconfig:"database" required:"true"`
 	Params   map[string]string
 }
 
