@@ -1,0 +1,7 @@
+include:
+  - project: 'jodworkspace/infrastructure'
+    ref: 'main'
+    file: '/devops/go-ci.yml'
+
+variables:
+  IMAGE_NAME: 'jodworkspace/mvp'

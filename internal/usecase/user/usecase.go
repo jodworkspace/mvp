@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5"
-	"gitlab.com/gookie/mvp/internal/domain"
-	postgresrepo "gitlab.com/gookie/mvp/internal/repository/postgres"
-	"gitlab.com/gookie/mvp/pkg/logger"
-	"gitlab.com/gookie/mvp/pkg/utils/cipherx"
-	"gitlab.com/gookie/mvp/pkg/utils/errorx"
+	"gitlab.com/jodworkspace/mvp/internal/domain"
+	postgresrepo "gitlab.com/jodworkspace/mvp/internal/repository/postgres"
+	"gitlab.com/jodworkspace/mvp/pkg/logger"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/cipherx"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/errorx"
 	"go.uber.org/zap"
 )
 

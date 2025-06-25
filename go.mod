@@ -1,4 +1,4 @@
-module gitlab.com/gookie/mvp
+module gitlab.com/jodworkspace/mvp
 
 go 1.23.3
 

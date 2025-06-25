@@ -1,10 +1,10 @@
 package v1
 
 import (
-	"gitlab.com/gookie/mvp/internal/domain"
-	taskuc "gitlab.com/gookie/mvp/internal/usecase/task"
-	"gitlab.com/gookie/mvp/pkg/logger"
-	"gitlab.com/gookie/mvp/pkg/utils/httpx"
+	"gitlab.com/jodworkspace/mvp/internal/domain"
+	taskuc "gitlab.com/jodworkspace/mvp/internal/usecase/task"
+	"gitlab.com/jodworkspace/mvp/pkg/logger"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
 	"net/http"
 )
 

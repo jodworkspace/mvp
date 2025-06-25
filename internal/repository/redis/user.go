@@ -1,7 +1,7 @@
 package redis
 
 import (
-	"gitlab.com/gookie/mvp/pkg/db"
+	"gitlab.com/jodworkspace/mvp/pkg/db"
 )
 
 type UserRepository struct {

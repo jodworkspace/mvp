@@ -1,9 +1,9 @@
 package authuc
 
 import (
-	"gitlab.com/gookie/mvp/config"
-	"gitlab.com/gookie/mvp/pkg/logger"
-	"gitlab.com/gookie/mvp/pkg/utils/jwtx"
+	"gitlab.com/jodworkspace/mvp/config"
+	"gitlab.com/jodworkspace/mvp/pkg/logger"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/jwtx"
 )
 
 type UseCase struct {

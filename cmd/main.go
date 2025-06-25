@@ -2,24 +2,24 @@ package main
 
 import (
 	"github.com/urfave/cli/v2"
-	"gitlab.com/gookie/mvp/config"
-	"gitlab.com/gookie/mvp/internal/handler/rest"
-	v1 "gitlab.com/gookie/mvp/internal/handler/rest/v1"
-	postgresrepo "gitlab.com/gookie/mvp/internal/repository/postgres"
-	authuc "gitlab.com/gookie/mvp/internal/usecase/auth"
-	"gitlab.com/gookie/mvp/internal/usecase/oauth"
-	taskuc "gitlab.com/gookie/mvp/internal/usecase/task"
-	useruc "gitlab.com/gookie/mvp/internal/usecase/user"
-	"gitlab.com/gookie/mvp/pkg/db"
-	"gitlab.com/gookie/mvp/pkg/logger"
-	"gitlab.com/gookie/mvp/pkg/utils/cipherx"
+	"gitlab.com/jodworkspace/mvp/config"
+	"gitlab.com/jodworkspace/mvp/internal/handler/rest"
+	v1 "gitlab.com/jodworkspace/mvp/internal/handler/rest/v1"
+	postgresrepo "gitlab.com/jodworkspace/mvp/internal/repository/postgres"
+	authuc "gitlab.com/jodworkspace/mvp/internal/usecase/auth"
+	"gitlab.com/jodworkspace/mvp/internal/usecase/oauth"
+	taskuc "gitlab.com/jodworkspace/mvp/internal/usecase/task"
+	useruc "gitlab.com/jodworkspace/mvp/internal/usecase/user"
+	"gitlab.com/jodworkspace/mvp/pkg/db"
+	"gitlab.com/jodworkspace/mvp/pkg/logger"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/cipherx"
 	"log"
 	"os"
 )
 
 func main() {
 	cfg := config.LoadConfig()
-	zapLogger := logger.MustNewZapLogger(cfg.Logger.Level)
+	zapLogger := logger.MustNewLogger(cfg.Logger.Level)
 	aead := cipherx.MustNewAEAD([]byte(cfg.Server.AESKey))
 
 	pgConn := db.MustNewPostgresConnection(

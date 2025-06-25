@@ -4,28 +4,28 @@ import "time"
 
 type User struct {
 	ID                string    `json:"id" db:"id"`
-	DisplayName       string    `json:"display_name" db:"display_name"`
+	DisplayName       string    `json:"displayName" db:"display_name"`
 	Email             string    `json:"email" db:"email"`
-	EmailVerified     bool      `json:"email_verified" db:"email_verified"`
+	EmailVerified     bool      `json:"emailVerified" db:"email_verified"`
 	Password          string    `json:"password" db:"password"`
 	PIN               string    `json:"pin" db:"pin"`
-	AvatarURL         string    `json:"avatar_url" db:"avatar_url"`
-	PreferredLanguage string    `json:"preferred_language" db:"preferred_language"`
+	AvatarURL         string    `json:"avatarUrl" db:"avatar_url"`
+	PreferredLanguage string    `json:"preferredLanguage" db:"preferred_language"`
 	Active            bool      `json:"active" db:"active"`
-	CreatedAt         time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at" db:"updated_at"`
+	CreatedAt         time.Time `json:"createdAt" db:"created_at"`
+	UpdatedAt         time.Time `json:"updatedAt" db:"updated_at"`
 }
 
 type Link struct {
-	Issuer                string    `json:"issuer" db:"issuer"`           // PK
-	ExternalID            string    `json:"external_id" db:"external_id"` // PK
-	UserID                string    `json:"user_id" db:"user_id"`
-	AccessToken           string    `json:"access_token" db:"access_token"`
-	RefreshToken          string    `json:"refresh_token" db:"refresh_token"`
-	AccessTokenExpiredAt  time.Time `json:"access_token_expired_at" db:"access_token_expired_at"`
-	RefreshTokenExpiredAt time.Time `json:"refresh_token_expired_at" db:"refresh_token_expired_at"`
-	CreatedAt             time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt             time.Time `json:"updated_at" db:"updated_at"`
+	Issuer                string    `json:"issuer" db:"issuer"`          // PK
+	ExternalID            string    `json:"externalId" db:"external_id"` // PK
+	UserID                string    `json:"userId" db:"user_id"`
+	AccessToken           string    `json:"-" db:"access_token"`
+	RefreshToken          string    `json:"-" db:"refresh_token"`
+	AccessTokenExpiredAt  time.Time `json:"-" db:"access_token_expired_at"`
+	RefreshTokenExpiredAt time.Time `json:"-" db:"refresh_token_expired_at"`
+	CreatedAt             time.Time `json:"createdAt" db:"created_at"`
+	UpdatedAt             time.Time `json:"updatedAt" db:"updated_at"`
 }
 
 const (

@@ -11,15 +11,15 @@ type ZapLogger struct {
 	*zap.Logger
 }
 
-func MustNewZapLogger(logLevel string) *ZapLogger {
-	zl, err := NewZapLogger(logLevel)
+func MustNewLogger(logLevel string) *ZapLogger {
+	zl, err := NewLogger(logLevel)
 	if err != nil {
 		panic(err)
 	}
 	return zl
 }
 
-func NewZapLogger(logLevel string) (*ZapLogger, error) {
+func NewLogger(logLevel string) (*ZapLogger, error) {
 	if logLevel == "none" {
 		return &ZapLogger{zap.NewNop()}, nil
 	}

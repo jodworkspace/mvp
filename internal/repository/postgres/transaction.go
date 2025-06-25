@@ -3,7 +3,7 @@ package postgresrepo
 import (
 	"context"
 	"github.com/jackc/pgx/v5"
-	"gitlab.com/gookie/mvp/pkg/db"
+	"gitlab.com/jodworkspace/mvp/pkg/db"
 )
 
 type TransactionManager struct {

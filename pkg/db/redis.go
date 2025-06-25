@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-// RedisClient is a subset of the redis.StringCmdable interface,
 type RedisClient interface {
-	Get(ctx context.Context, key string) *redis.StringCmd
-	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+	Get(ctx context.Context, key string) ([]byte, error)
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) ([]byte, error)
+	Del(ctx context.Context, key string) error
 }
 
 type redisClient struct {
@@ -28,10 +28,25 @@ func NewRedisFailoverClient(options *redis.FailoverOptions) RedisClient {
 	}
 }
 
-func (r *redisClient) Get(ctx context.Context, key string) *redis.StringCmd {
-	return r.client.Get(ctx, key)
+func (r *redisClient) Get(ctx context.Context, key string) ([]byte, error) {
+	res := r.client.Get(ctx, key)
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+
+	return res.Bytes()
 }
 
-func (r *redisClient) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd {
-	return r.client.Set(ctx, key, value, expiration)
+func (r *redisClient) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) ([]byte, error) {
+	res := r.client.Set(ctx, key, value, expiration)
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+
+	// Return "OK" as a byte slice
+	return res.Bytes()
+}
+
+func (r *redisClient) Del(ctx context.Context, key string) error {
+	return r.client.Del(ctx, key).Err()
 }

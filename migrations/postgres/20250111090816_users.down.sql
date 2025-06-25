@@ -1,2 +1,2 @@
-DROP TABLE IF EXISTS federated_users;
+DROP TABLE IF EXISTS links;
 DROP TABLE IF EXISTS users;

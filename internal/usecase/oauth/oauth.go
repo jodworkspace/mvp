@@ -1,10 +1,10 @@
 package oauthuc
 
 import (
-	"gitlab.com/gookie/mvp/config"
-	"gitlab.com/gookie/mvp/internal/domain"
-	"gitlab.com/gookie/mvp/pkg/logger"
-	"gitlab.com/gookie/mvp/pkg/utils/errorx"
+	"gitlab.com/jodworkspace/mvp/config"
+	"gitlab.com/jodworkspace/mvp/internal/domain"
+	"gitlab.com/jodworkspace/mvp/pkg/logger"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/errorx"
 	"go.uber.org/zap"
 )
 

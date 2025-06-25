@@ -2,10 +2,10 @@ package oauthuc
 
 import (
 	"encoding/json"
-	"gitlab.com/gookie/mvp/config"
-	"gitlab.com/gookie/mvp/internal/domain"
-	"gitlab.com/gookie/mvp/pkg/logger"
-	"gitlab.com/gookie/mvp/pkg/utils/httpx"
+	"gitlab.com/jodworkspace/mvp/config"
+	"gitlab.com/jodworkspace/mvp/internal/domain"
+	"gitlab.com/jodworkspace/mvp/pkg/logger"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
 	"go.uber.org/zap"
 	"net/http"
 	"time"

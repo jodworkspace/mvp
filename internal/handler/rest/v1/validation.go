@@ -3,7 +3,7 @@ package v1
 import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
-	"gitlab.com/gookie/mvp/pkg/utils/httpx"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
 	"net/http"
 )
 

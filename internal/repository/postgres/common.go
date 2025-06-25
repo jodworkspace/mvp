@@ -3,7 +3,7 @@ package postgresrepo
 import (
 	"context"
 	"github.com/Masterminds/squirrel"
-	"gitlab.com/gookie/mvp/pkg/db"
+	"gitlab.com/jodworkspace/mvp/pkg/db"
 )
 
 func exists(db db.PostgresConn, ctx context.Context, table string, col string, val any) (bool, error) {

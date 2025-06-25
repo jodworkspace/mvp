@@ -3,8 +3,8 @@ package middleware
 import (
 	"context"
 	"github.com/gorilla/sessions"
-	"gitlab.com/gookie/mvp/pkg/utils/httpx"
-	"gitlab.com/gookie/mvp/pkg/utils/jwtx"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/jwtx"
 	"net/http"
 )
 

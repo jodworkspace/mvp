@@ -3,7 +3,7 @@ package useruc
 import (
 	"context"
 	"github.com/jackc/pgx/v5"
-	"gitlab.com/gookie/mvp/internal/domain"
+	"gitlab.com/jodworkspace/mvp/internal/domain"
 )
 
 type UserRepository interface {

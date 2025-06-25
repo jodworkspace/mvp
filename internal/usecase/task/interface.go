@@ -2,7 +2,7 @@ package taskuc
 
 import (
 	"context"
-	"gitlab.com/gookie/mvp/internal/domain"
+	"gitlab.com/jodworkspace/mvp/internal/domain"
 )
 
 type TaskUsecase interface {

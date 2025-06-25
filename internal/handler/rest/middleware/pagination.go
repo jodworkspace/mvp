@@ -3,8 +3,8 @@ package middleware
 import (
 	"context"
 	"encoding/json"
-	"gitlab.com/gookie/mvp/config"
-	"gitlab.com/gookie/mvp/internal/domain"
+	"gitlab.com/jodworkspace/mvp/config"
+	"gitlab.com/jodworkspace/mvp/internal/domain"
 	"net/http"
 )
 
