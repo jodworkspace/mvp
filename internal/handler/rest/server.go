@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"gitlab.com/jodworkspace/mvp/pkg/monitor"
 
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
@@ -93,6 +94,9 @@ func (s *Server) RestMux() *chi.Mux {
 		_, _ = w.Write(data)
 	})
 
+	prometheusClient := monitor.NewPrometheusClient()
+
+	r.Handle("/metrics", prometheusClient.HTTPHandler())
 	r.Post("/api/v1/login/google", s.oauthHandler.Login(domain.ProviderGoogle))
 	r.Post("/api/v1/login/github", s.oauthHandler.Login(domain.ProviderGitHub))
 
