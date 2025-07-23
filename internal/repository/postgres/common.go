@@ -3,10 +3,10 @@ package postgresrepo
 import (
 	"context"
 	"github.com/Masterminds/squirrel"
-	"gitlab.com/jodworkspace/mvp/pkg/db"
+	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
 )
 
-func exists(db db.PostgresConn, ctx context.Context, table string, col string, val any) (bool, error) {
+func exists(db postgres.Client, ctx context.Context, table string, col string, val any) (bool, error) {
 	query, args, err := db.QueryBuilder().
 		Select("1").
 		Prefix("SELECT EXISTS(").

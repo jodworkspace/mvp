@@ -5,19 +5,19 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
-	"gitlab.com/jodworkspace/mvp/pkg/db"
+	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
 )
 
 type UserRepository struct {
-	db.PostgresConn
+	postgres.Client
 }
 
-func NewUserRepository(conn db.PostgresConn) *UserRepository {
+func NewUserRepository(conn postgres.Client) *UserRepository {
 	return &UserRepository{conn}
 }
 
 func (r *UserRepository) Exists(ctx context.Context, col string, val any) (bool, error) {
-	return exists(r.PostgresConn, ctx, domain.TableUsers, col, val)
+	return exists(r.Client, ctx, domain.TableUsers, col, val)
 }
 
 func (r *UserRepository) Insert(ctx context.Context, user *domain.User, tx ...pgx.Tx) error {

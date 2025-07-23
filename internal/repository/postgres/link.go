@@ -4,16 +4,16 @@ import (
 	"context"
 	"github.com/jackc/pgx/v5"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
-	"gitlab.com/jodworkspace/mvp/pkg/db"
+	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
 )
 
 type LinkRepository struct {
-	db.PostgresConn
+	postgres.Client
 }
 
-func NewLinkRepository(conn db.PostgresConn) *LinkRepository {
+func NewLinkRepository(conn postgres.Client) *LinkRepository {
 	return &LinkRepository{
-		PostgresConn: conn,
+		Client: conn,
 	}
 }
 

@@ -1,9 +1,9 @@
 package redis
 
 import (
-	"gitlab.com/jodworkspace/mvp/pkg/db"
+	"gitlab.com/jodworkspace/mvp/pkg/db/redis"
 )
 
 type UserRepository struct {
-	db.RedisClient
+	redis.Client
 }

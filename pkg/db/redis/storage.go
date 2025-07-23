@@ -1,30 +1,30 @@
-package store
+package redis
 
 import (
 	"encoding/json"
 	"errors"
 	"github.com/gorilla/sessions"
-	"github.com/redis/go-redis/v9"
+	goredis "github.com/redis/go-redis/v9"
 	"net/http"
 )
 
-type RedisStore struct {
-	Client    *redis.Client
+type Store struct {
+	Client    *goredis.Client
 	KeyPrefix string
 }
 
-func NewRedisStore(client *redis.Client, keyPrefix string) *RedisStore {
-	return &RedisStore{
+func NewRedisStore(client *goredis.Client, keyPrefix string) *Store {
+	return &Store{
 		Client:    client,
 		KeyPrefix: keyPrefix,
 	}
 }
 
-func (s *RedisStore) Get(r *http.Request, name string) (*sessions.Session, error) {
+func (s *Store) Get(r *http.Request, name string) (*sessions.Session, error) {
 	return sessions.GetRegistry(r).Get(s, name)
 }
 
-func (s *RedisStore) New(r *http.Request, name string) (*sessions.Session, error) {
+func (s *Store) New(r *http.Request, name string) (*sessions.Session, error) {
 	session := sessions.NewSession(s, name)
 	session.Options = &sessions.Options{
 		Path: "/",
@@ -41,7 +41,7 @@ func (s *RedisStore) New(r *http.Request, name string) (*sessions.Session, error
 
 	data, err := s.Client.Get(r.Context(), s.KeyPrefix+cookie.Value).Result()
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
+		if errors.Is(err, goredis.Nil) {
 			return session, nil
 		}
 		return nil, err
@@ -56,6 +56,6 @@ func (s *RedisStore) New(r *http.Request, name string) (*sessions.Session, error
 	return session, nil
 }
 
-func (s *RedisStore) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
+func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
 	return nil
 }

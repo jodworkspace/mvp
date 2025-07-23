@@ -10,7 +10,7 @@ import (
 	"gitlab.com/jodworkspace/mvp/internal/usecase/oauth"
 	taskuc "gitlab.com/jodworkspace/mvp/internal/usecase/task"
 	useruc "gitlab.com/jodworkspace/mvp/internal/usecase/user"
-	"gitlab.com/jodworkspace/mvp/pkg/db"
+	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/cipherx"
 	"log"
@@ -22,10 +22,10 @@ func main() {
 	zapLogger := logger.MustNewLogger(cfg.Logger.Level)
 	aead := cipherx.MustNewAEAD([]byte(cfg.Server.AESKey))
 
-	pgConn := db.MustNewPostgresConnection(
+	pgConn := postgres.MustNewPostgresConnection(
 		cfg.Postgres.DSN(),
-		db.WithMaxConns(10),
-		db.WithMinConns(2),
+		postgres.WithMaxConns(10),
+		postgres.WithMinConns(2),
 	)
 	defer pgConn.Pool().Close()
 

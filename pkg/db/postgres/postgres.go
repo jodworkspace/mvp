@@ -1,4 +1,4 @@
-package db
+package postgres
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type PostgresConn interface {
+type Client interface {
 	Pool() *pgxpool.Pool
 	QueryBuilder() squirrel.StatementBuilderType
 }
@@ -24,7 +24,7 @@ func (c *postgresConn) QueryBuilder() squirrel.StatementBuilderType {
 	return c.SQLBuilder
 }
 
-func MustNewPostgresConnection(dsn string, options ...PostgresOption) PostgresConn {
+func MustNewPostgresConnection(dsn string, options ...Option) Client {
 	c, err := NewPostgresConnection(dsn, options...)
 	if err != nil {
 		panic(err)
@@ -33,7 +33,7 @@ func MustNewPostgresConnection(dsn string, options ...PostgresOption) PostgresCo
 	return c
 }
 
-func NewPostgresConnection(dsn string, options ...PostgresOption) (PostgresConn, error) {
+func NewPostgresConnection(dsn string, options ...Option) (Client, error) {
 	dbConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, err
@@ -59,18 +59,4 @@ func NewPostgresConnection(dsn string, options ...PostgresOption) (PostgresConn,
 	}
 
 	return pgc, nil
-}
-
-type PostgresOption func(*pgxpool.Config)
-
-func WithMinConns(minConns int32) PostgresOption {
-	return func(config *pgxpool.Config) {
-		config.MinConns = minConns
-	}
-}
-
-func WithMaxConns(maxConns int32) PostgresOption {
-	return func(config *pgxpool.Config) {
-		config.MaxConns = maxConns
-	}
 }

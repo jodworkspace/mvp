@@ -4,14 +4,14 @@ import (
 	"context"
 	"github.com/Masterminds/squirrel"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
-	"gitlab.com/jodworkspace/mvp/pkg/db"
+	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
 )
 
 type TaskRepository struct {
-	db.PostgresConn
+	postgres.Client
 }
 
-func NewTaskRepository(conn db.PostgresConn) *TaskRepository {
+func NewTaskRepository(conn postgres.Client) *TaskRepository {
 	return &TaskRepository{conn}
 }
 

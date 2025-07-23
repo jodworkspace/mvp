@@ -3,14 +3,14 @@ package postgresrepo
 import (
 	"context"
 	"github.com/jackc/pgx/v5"
-	"gitlab.com/jodworkspace/mvp/pkg/db"
+	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
 )
 
 type TransactionManager struct {
-	db db.PostgresConn
+	db postgres.Client
 }
 
-func NewTransactionManager(db db.PostgresConn) *TransactionManager {
+func NewTransactionManager(db postgres.Client) *TransactionManager {
 	return &TransactionManager{
 		db: db,
 	}

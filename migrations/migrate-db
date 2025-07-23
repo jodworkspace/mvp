@@ -14,12 +14,10 @@ function log_success() {
   echo -e "${GREEN}>>> $1${NC}"
 }
 
-# Function to print error messages in red to stderr
 function log_error() {
   echo -e "${RED}>>> $1${NC}" >&2
 }
 
-# Ensure required environment variables are set before executing any database-related actions
 function check_env_vars() {
   if [[ -z "${MIGRATION_FOLDER:-}" ]]; then
     log_error "MIGRATION_FOLDER is not set."
@@ -33,17 +31,14 @@ function check_env_vars() {
   fi
 }
 
-# Create a new migration file with the provided name
 function new_migration() {
   local name="$1"
 
-  # Check if the migration name is provided
   if [[ -z "$name" ]]; then
     log_error "Migration name is required for 'create'."
     exit 1
   fi
 
-  # Attempt to create the migration
   if migrate create -ext sql -dir "${MIGRATION_FOLDER}" "$name"; then
     log_success "Generated DB migration successfully."
   else
@@ -52,7 +47,6 @@ function new_migration() {
   fi
 }
 
-# Apply all up migrations to upgrade the database schema
 function upgrade() {
   if migrate -path "${MIGRATION_FOLDER}" -database "${POSTGRESQL_URI}" up; then
     log_success "Upgraded DB successfully."
@@ -62,7 +56,6 @@ function upgrade() {
   fi
 }
 
-# Revert the last applied migration (down by 1 step)
 function downgrade() {
   if migrate -path "${MIGRATION_FOLDER}" -database "${POSTGRESQL_URI}" down 1; then
     log_success "Downgraded DB successfully."
@@ -89,7 +82,6 @@ main() {
       downgrade
       ;;
     *)
-      # Print usage instructions for invalid commands
       log_error "Unknown command: $cmd"
       echo -e "${RED}Usage: $0 {create <name>|up|down}${NC}"
       exit 1
