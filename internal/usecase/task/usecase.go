@@ -14,7 +14,7 @@ type taskUsecase struct {
 	logger   *logger.ZapLogger
 }
 
-func NewTaskUsecase(taskRepo TaskRepository, zl *logger.ZapLogger) TaskUsecase {
+func NewTaskUsecase(taskRepo TaskRepository, zl *logger.ZapLogger) TaskUseCase {
 	return &taskUsecase{
 		taskRepo: taskRepo,
 		logger:   zl,

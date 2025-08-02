@@ -12,7 +12,10 @@ type Client interface {
 	Keys(ctx context.Context, pattern string) ([]string, error)
 	Exists(ctx context.Context, key ...string) (int64, error)
 	Get(ctx context.Context, key string) (string, error)
-	Set(ctx context.Context, key string, value any, expiration time.Duration) (string, error)
+
+	// Set sets the value of a key in Redis with an expiration time in seconds.
+	Set(ctx context.Context, key string, value any, expiration int) (string, error)
+
 	Del(ctx context.Context, key string) error
 	MDel(ctx context.Context, keys ...string) (int64, error)
 	MGet(ctx context.Context, keys ...string) ([]any, error)
@@ -91,8 +94,10 @@ func (r *redisClient) Get(ctx context.Context, key string) (string, error) {
 	return resp.Val(), nil
 }
 
-func (r *redisClient) Set(ctx context.Context, key string, value any, expiration time.Duration) (string, error) {
-	resp := r.client.Set(ctx, key, value, expiration)
+// Set sets the value of a key in Redis with an expiration time in seconds.
+func (r *redisClient) Set(ctx context.Context, key string, value any, expiration int) (string, error) {
+	exp := time.Duration(expiration) * time.Second
+	resp := r.client.Set(ctx, key, value, exp)
 	if err := resp.Err(); err != nil {
 		return "", err
 	}

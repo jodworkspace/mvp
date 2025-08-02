@@ -6,7 +6,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"gitlab.com/jodworkspace/mvp/pkg/monitor"
+	"github.com/gorilla/sessions"
+	"gitlab.com/jodworkspace/mvp/pkg/monitor/metrics"
 
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
@@ -21,8 +22,8 @@ import (
 )
 
 type Server struct {
-	cfg *config.Config
-
+	cfg          *config.Config
+	sessionStore sessions.Store
 	taskHandler  *v1.TaskHandler
 	oauthHandler *v1.OAuthHandler
 	logger       *logger.ZapLogger
@@ -30,6 +31,7 @@ type Server struct {
 
 func NewServer(
 	cfg *config.Config,
+	sessionStore sessions.Store,
 	taskHandler *v1.TaskHandler,
 	oauthHandler *v1.OAuthHandler,
 	logger *logger.ZapLogger,
@@ -37,6 +39,7 @@ func NewServer(
 
 	return &Server{
 		cfg:          cfg,
+		sessionStore: sessionStore,
 		taskHandler:  taskHandler,
 		oauthHandler: oauthHandler,
 		logger:       logger,
@@ -94,14 +97,14 @@ func (s *Server) RestMux() *chi.Mux {
 		_, _ = w.Write(data)
 	})
 
-	prometheusClient := monitor.NewPrometheusClient()
+	prometheusClient := metrics.NewPrometheusClient()
 
 	r.Handle("/metrics", prometheusClient.HTTPHandler())
 	r.Post("/api/v1/login/google", s.oauthHandler.Login(domain.ProviderGoogle))
 	r.Post("/api/v1/login/github", s.oauthHandler.Login(domain.ProviderGitHub))
 
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Use(mw.TokenAuth([]byte(s.cfg.Token.Secret)))
+		r.Use(mw.SessionAuth(s.sessionStore, domain.SessionCookieName))
 
 		r.Get("/userinfo", s.oauthHandler.GetUserInfo)
 

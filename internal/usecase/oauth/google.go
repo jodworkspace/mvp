@@ -32,7 +32,7 @@ func (u *GoogleUseCase) Provider() string {
 }
 
 func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error) {
-	tokenURL, err := u.httpClient.BuildURL(u.config.TokenEndpoint, map[string]string{
+	tokenURL, err := u.httpClient.BuildURLWithQuery(u.config.TokenEndpoint, map[string]string{
 		"client_id":     u.config.ClientID,
 		"client_secret": u.config.ClientSecret,
 		"code":          authorizationCode,
@@ -42,17 +42,17 @@ func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectU
 	})
 
 	if err != nil {
-		u.logger.Error("GoogleUseCase - httpx.BuildURL", zap.Error(err))
+		u.logger.Error("GoogleUseCase - ExchangeToken - httpx.BuildURLWithQuery", zap.Error(err))
 		return nil, err
 	}
 
 	resp, err := u.httpClient.DoRequest("POST", tokenURL, nil)
 	if err != nil {
-		u.logger.Error("GoogleUseCase - httpClient.DoRequest", zap.Error(err))
+		u.logger.Error("GoogleUseCase - ExchangeToken - httpClient.DoRequest", zap.Error(err))
 		return nil, err
 	}
 
-	var data struct {
+	var respData struct {
 		AccessToken           string        `json:"access_token"`
 		RefreshToken          string        `json:"refresh_token"`
 		TokenType             string        `json:"token_type"`
@@ -61,25 +61,26 @@ func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectU
 		Scope                 string        `json:"scope"`
 		IDToken               string        `json:"id_token"`
 	}
-	err = json.NewDecoder(resp.Body).Decode(&data)
+	err = json.NewDecoder(resp.Body).Decode(&respData)
 	if err != nil {
+		u.logger.Error("GoogleUseCase - ExchangeToken - json.NewDecoder.Decode", zap.Error(err))
 		return nil, err
 	}
 
 	return &domain.Link{
-		AccessToken:           data.AccessToken,
-		RefreshToken:          data.RefreshToken,
-		AccessTokenExpiredAt:  time.Now().Add(data.ExpiresIn),
-		RefreshTokenExpiredAt: time.Now().Add(data.ExpiresIn),
+		AccessToken:           respData.AccessToken,
+		RefreshToken:          respData.RefreshToken,
+		AccessTokenExpiredAt:  time.Now().Add(respData.ExpiresIn),
+		RefreshTokenExpiredAt: time.Now().Add(respData.RefreshTokenExpiresIn),
 	}, nil
 }
 
 func (u *GoogleUseCase) GetUserInfo(link *domain.Link) (*domain.User, error) {
-	userInfoURL, err := u.httpClient.BuildURL(u.config.UserInfoEndpoint, map[string]string{
+	userInfoURL, err := u.httpClient.BuildURLWithQuery(u.config.UserInfoEndpoint, map[string]string{
 		"access_token": link.AccessToken,
 	})
 	if err != nil {
-		u.logger.Error("GoogleUseCase - httpx.BuildURL", zap.Error(err))
+		u.logger.Error("GoogleUseCase - httpx.BuildURLWithQuery", zap.Error(err))
 		return nil, err
 	}
 

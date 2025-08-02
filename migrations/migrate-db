@@ -24,9 +24,9 @@ function check_env_vars() {
     exit 1
   fi
 
-  # Only check for POSTGRESQL_URI if the operation isn't 'create'
-  if [[ "$1" != "create" && -z "${POSTGRESQL_URI:-}" ]]; then
-    log_error "POSTGRESQL_URI is not set."
+  # Only check for POSTGRES_DSN if the operation isn't 'create'
+  if [[ "$1" != "create" && -z "${POSTGRES_DSN:-}" ]]; then
+    log_error "POSTGRES_DSN is not set."
     exit 1
   fi
 }
@@ -48,7 +48,7 @@ function new_migration() {
 }
 
 function upgrade() {
-  if migrate -path "${MIGRATION_FOLDER}" -database "${POSTGRESQL_URI}" up; then
+  if migrate -path "${MIGRATION_FOLDER}" -database "${POSTGRES_DSN}" up; then
     log_success "Upgraded DB successfully."
   else
     log_error "Failed to upgrade DB."
@@ -57,7 +57,7 @@ function upgrade() {
 }
 
 function downgrade() {
-  if migrate -path "${MIGRATION_FOLDER}" -database "${POSTGRESQL_URI}" down 1; then
+  if migrate -path "${MIGRATION_FOLDER}" -database "${POSTGRES_DSN}" down 1; then
     log_success "Downgraded DB successfully."
   else
     log_error "Failed to downgrade DB."

@@ -5,7 +5,7 @@ import (
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 )
 
-type TaskUsecase interface {
+type TaskUseCase interface {
 	Count(ctx context.Context) (int64, error)
 	List(ctx context.Context, page uint64, pageSize uint64) ([]*domain.Task, error)
 	Create(ctx context.Context, task *domain.Task) error

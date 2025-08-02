@@ -9,11 +9,11 @@ import (
 )
 
 type TaskHandler struct {
-	taskUC taskuc.TaskUsecase
+	taskUC taskuc.TaskUseCase
 	logger *logger.ZapLogger
 }
 
-func NewTaskHandler(taskUC taskuc.TaskUsecase, zl *logger.ZapLogger) *TaskHandler {
+func NewTaskHandler(taskUC taskuc.TaskUseCase, zl *logger.ZapLogger) *TaskHandler {
 	return &TaskHandler{
 		taskUC: taskUC,
 		logger: zl,
@@ -22,16 +22,22 @@ func NewTaskHandler(taskUC taskuc.TaskUsecase, zl *logger.ZapLogger) *TaskHandle
 
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	pagination := r.Context().Value("pagination").(domain.Pagination)
-	page := pagination.Page
-	pageSize := pagination.PageSize
+	page := uint64(pagination.Page)
+	pageSize := uint64(pagination.PageSize)
 
 	tasks, err := h.taskUC.List(r.Context(), page, pageSize)
 	if err != nil {
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+		})
 		return
 	}
 
 	total, err := h.taskUC.Count(r.Context())
 	if err != nil {
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+		})
 		return
 	}
 

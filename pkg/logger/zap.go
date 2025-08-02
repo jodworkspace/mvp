@@ -1,10 +1,20 @@
 package logger
 
 import (
-	"fmt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
+)
+
+var (
+	logLevelMap = map[string]zapcore.Level{
+		"debug": zapcore.DebugLevel,
+		"info":  zapcore.InfoLevel,
+		"warn":  zapcore.WarnLevel,
+		"error": zapcore.ErrorLevel,
+		"fatal": zapcore.FatalLevel,
+		"panic": zapcore.PanicLevel,
+	}
 )
 
 type ZapLogger struct {
@@ -20,32 +30,10 @@ func MustNewLogger(logLevel string) *ZapLogger {
 }
 
 func NewLogger(logLevel string) (*ZapLogger, error) {
-	if logLevel == "none" {
+	level, exists := logLevelMap[logLevel]
+	if !exists {
 		return &ZapLogger{zap.NewNop()}, nil
 	}
-
-	var level zapcore.Level
-	switch logLevel {
-	case "debug":
-		level = zapcore.DebugLevel
-	case "info":
-		level = zapcore.InfoLevel
-	case "warn":
-		level = zapcore.WarnLevel
-	case "error":
-		level = zapcore.ErrorLevel
-	case "panic":
-		level = zapcore.PanicLevel
-	case "fatal":
-		level = zapcore.FatalLevel
-	default:
-		return nil, fmt.Errorf("unknown logger level: %s", logLevel)
-	}
-
-	encoderCfg := zap.NewProductionEncoderConfig()
-	encoderCfg.TimeKey = "timestamp"
-	encoderCfg.MessageKey = "message"
-	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 
 	config := zap.Config{
 		Level:             zap.NewAtomicLevelAt(level),
@@ -54,16 +42,14 @@ func NewLogger(logLevel string) (*ZapLogger, error) {
 		DisableStacktrace: true,
 		Sampling:          nil,
 		Encoding:          "json",
-		EncoderConfig:     encoderCfg,
-		OutputPaths: []string{
-			"stderr",
+		EncoderConfig: zapcore.EncoderConfig{
+			TimeKey:    "timestamp",
+			MessageKey: "msg",
+			EncodeTime: zapcore.ISO8601TimeEncoder,
 		},
-		ErrorOutputPaths: []string{
-			"stderr",
-		},
-		InitialFields: map[string]interface{}{
-			"pid": os.Getpid(),
-		},
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
+		InitialFields:    map[string]any{"pid": os.Getpid()},
 	}
 
 	logger, err := config.Build()
@@ -71,6 +57,8 @@ func NewLogger(logLevel string) (*ZapLogger, error) {
 		return nil, err
 	}
 
+	// Skip reporting the wrapper as log caller
 	logger = logger.WithOptions(zap.AddCallerSkip(1))
+
 	return &ZapLogger{logger}, nil
 }

@@ -42,8 +42,15 @@ type ServerConfig struct {
 }
 
 type SessionConfig struct {
-	Secret        string `envconfig:"secret" required:"true"`
-	Name          string `envconfig:"name" default:"session"`
+	CookieSecret string `envconfig:"cookie_secret"`
+	Name         string `envconfig:"name" default:"sid"`
+	Domain       string `envconfig:"domain" default:"localhost"`
+	Path         string `envconfig:"path" default:"/"`
+	MaxAge       int    `envconfig:"max_age" default:"86400"`
+	HTTPOnly     bool   `envconfig:"http_only" default:"true"`
+	Secure       bool   `envconfig:"secure" default:"false"`
+
+	// Storage configuration
 	RedisHost     string `envconfig:"redis_host" default:"localhost"`
 	RedisPort     uint16 `envconfig:"redis_port" default:"6379"`
 	RedisDB       int    `envconfig:"redis_db" default:"0"`
@@ -60,11 +67,10 @@ type CORSConfig struct {
 }
 
 type TokenConfig struct {
-	Secret        string        `envconfig:"secret" required:"true"`
-	RefreshSecret string        `envconfig:"refresh_secret" required:"true"`
-	ShortExpiry   time.Duration `envconfig:"short_expiry" default:"3600s"`   // 1 hour
-	LongExpiry    time.Duration `envconfig:"long_expiry" default:"2592000s"` // 30 days
-	Issuer        string        `envconfig:"issuer" default:"gookie.io"`
+	Secret      string        `envconfig:"secret"`
+	ShortExpiry time.Duration `envconfig:"short_expiry" default:"3600s"`   // 1 hour
+	LongExpiry  time.Duration `envconfig:"long_expiry" default:"2592000s"` // 30 days
+	Issuer      string        `envconfig:"issuer" default:"jodworkspace"`
 }
 
 type LoggerConfig struct {
@@ -73,10 +79,10 @@ type LoggerConfig struct {
 }
 
 type GoogleOAuthConfig struct {
-	ClientID         string `envconfig:"google_client_id" required:"true"`
-	ClientSecret     string `envconfig:"google_client_secret" required:"true"`
-	TokenEndpoint    string `envconfig:"google_token_endpoint" required:"true"`
-	UserInfoEndpoint string `envconfig:"google_userinfo_endpoint" required:"true"`
+	ClientID         string `envconfig:"client_id" required:"true"`
+	ClientSecret     string `envconfig:"client_secret" required:"true"`
+	TokenEndpoint    string `envconfig:"token_endpoint" required:"true"`
+	UserInfoEndpoint string `envconfig:"userinfo_endpoint" required:"true"`
 }
 
 type RedisConfig struct {

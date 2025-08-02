@@ -35,7 +35,7 @@ func ReadJSON(r *http.Request, data any) error {
 }
 
 func WriteJSON(w http.ResponseWriter, status int, data any, headers ...http.Header) error {
-	out, err := json.MarshalIndent(data, "", "\t")
+	out, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}

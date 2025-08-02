@@ -9,7 +9,6 @@ import (
 
 type Claims struct {
 	jwt.RegisteredClaims
-	Email string `json:"email,omitempty"`
 }
 
 func GenerateToken(secret []byte, expiry time.Duration, opts ...Option) string {

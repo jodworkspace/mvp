@@ -20,14 +20,13 @@ type RabbitClient interface {
 }
 
 type rabbitClient struct {
-	mu sync.RWMutex
-
+	mu       sync.RWMutex
 	conn     *amqp.Connection
 	channels chan amqp.Channel
 }
 
 func NewRabbitClient(url string, poolSize int) (RabbitClient, error) {
-	conn, err := amqp.Dial(url)
+	conn, err := amqp.DialConfig(url, amqp.Config{})
 	if err != nil {
 		return nil, err
 	}
