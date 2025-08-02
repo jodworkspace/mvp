@@ -40,7 +40,8 @@ func (s *Store) New(r *http.Request, name string) (*sessions.Session, error) {
 		return s.newSession(name), nil
 	}
 
-	data, err := s.redisClient.Get(r.Context(), cookie.Value)
+	key := s.keyPrefix + cookie.Value
+	data, err := s.redisClient.Get(r.Context(), key)
 	if err != nil {
 		if errors.Is(err, goredis.Nil) {
 			// return a new session if the key does not exist

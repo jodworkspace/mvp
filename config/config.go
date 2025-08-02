@@ -45,7 +45,7 @@ type SessionConfig struct {
 	CookieSecret string `envconfig:"cookie_secret"`
 	Name         string `envconfig:"name" default:"sid"`
 	Domain       string `envconfig:"domain" default:"localhost"`
-	Path         string `envconfig:"path" default:"/"`
+	CookiePath   string `envconfig:"cookie_path" default:"/"`
 	MaxAge       int    `envconfig:"max_age" default:"86400"`
 	HTTPOnly     bool   `envconfig:"http_only" default:"true"`
 	Secure       bool   `envconfig:"secure" default:"false"`

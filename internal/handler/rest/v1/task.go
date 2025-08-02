@@ -21,7 +21,7 @@ func NewTaskHandler(taskUC taskuc.TaskUseCase, zl *logger.ZapLogger) *TaskHandle
 }
 
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
-	pagination := r.Context().Value("pagination").(domain.Pagination)
+	pagination := r.Context().Value("pagination").(*domain.Pagination)
 	page := uint64(pagination.Page)
 	pageSize := uint64(pagination.PageSize)
 

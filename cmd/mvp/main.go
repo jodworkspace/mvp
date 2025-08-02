@@ -47,7 +47,7 @@ func main() {
 	defer redisClient.Close()
 
 	sessionStore := redis.NewStore(redisClient, "session:", &sessions.Options{
-		Path:     cfg.SessionConfig.Path,
+		Path:     cfg.SessionConfig.CookiePath,
 		Domain:   cfg.SessionConfig.Domain,
 		MaxAge:   cfg.SessionConfig.MaxAge,
 		HttpOnly: cfg.SessionConfig.HTTPOnly,
