@@ -9,59 +9,68 @@ import (
 	"time"
 )
 
-type taskUsecase struct {
+type taskUseCase struct {
 	taskRepo TaskRepository
 	logger   *logger.ZapLogger
 }
 
-func NewTaskUsecase(taskRepo TaskRepository, zl *logger.ZapLogger) TaskUseCase {
-	return &taskUsecase{
+func NewTaskUseCase(taskRepo TaskRepository, zl *logger.ZapLogger) TaskUseCase {
+	return &taskUseCase{
 		taskRepo: taskRepo,
 		logger:   zl,
 	}
 }
-func (u *taskUsecase) Count(ctx context.Context) (int64, error) {
-	count, err := u.taskRepo.Count(ctx)
+func (u *taskUseCase) Count(ctx context.Context, filter *domain.Filter) (int64, error) {
+	count, err := u.taskRepo.Count(ctx, filter)
 	if err != nil {
-		u.logger.Error("taskUsecase - taskRepo.Count", zap.Error(err))
+		u.logger.Error("taskUseCase - taskRepo.Count", zap.Error(err))
 		return 0, err
 	}
 
 	return count, nil
 }
 
-func (u *taskUsecase) List(ctx context.Context, page uint64, pageSize uint64) ([]*domain.Task, error) {
-	tasks, err := u.taskRepo.List(ctx, page, pageSize)
+func (u *taskUseCase) List(ctx context.Context, filter *domain.Filter) ([]*domain.Task, error) {
+	tasks, err := u.taskRepo.List(ctx, filter)
 	if err != nil {
-		u.logger.Error("taskUsecase- taskRepo.List", zap.Error(err))
+		u.logger.Error(
+			"taskUseCase - taskRepo.List",
+			zap.Any("filter", filter),
+			zap.Error(err),
+		)
 		return nil, err
 	}
+
 	return tasks, nil
 }
 
-func (u *taskUsecase) Create(ctx context.Context, task *domain.Task) error {
+func (u *taskUseCase) Create(ctx context.Context, task *domain.Task) error {
 	task.ID = uuid.NewString()
 	task.IsCompleted = false
-	task.OwnerUserID = ""
 	task.CreatedAt = time.Now()
 	task.UpdatedAt = time.Now()
 
 	_, err := u.taskRepo.Create(ctx, task)
 	if err != nil {
-		u.logger.Error("taskUsecase- taskRepo.Create", zap.Error(err))
+		u.logger.Error(
+			"taskUseCase- taskRepo.Create",
+			zap.String("owner_id", task.OwnerID),
+			zap.Error(err),
+		)
 		return err
 	}
+
 	return nil
 }
 
-func (u *taskUsecase) Get(ctx context.Context, id uint64) (*domain.Task, error) {
+func (u *taskUseCase) Get(ctx context.Context, id uint64) (*domain.Task, error) {
 	return nil, nil
 }
 
-func (u *taskUsecase) Update(ctx context.Context, task *domain.Task) error {
+func (u *taskUseCase) Update(ctx context.Context, task *domain.Task) error {
 	return nil
 }
 
-func (u *taskUsecase) Delete(ctx context.Context, id uint64) error {
+func (u *taskUseCase) Delete(ctx context.Context, id uint64) error {
 	return nil
 }

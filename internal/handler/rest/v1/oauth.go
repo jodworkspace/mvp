@@ -143,20 +143,18 @@ func (h *OAuthHandler) Login(provider string) http.HandlerFunc {
 			HttpOnly: session.Options.HttpOnly,
 		})
 
-		_ = httpx.WriteJSON(w, http.StatusOK, httpx.JSON{
-			"code":    http.StatusOK,
-			"message": "success",
-			"data": httpx.JSON{
-				"user": existedUser,
-				"link": link,
-			},
+		_ = httpx.SuccessJSON(w, http.StatusOK, httpx.JSON{
+			"user": existedUser,
+			"link": link,
 		})
 	}
 }
 
 func (h *OAuthHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	accessToken := r.Header.Get("Authorization")[7:]
-	_ = httpx.WriteJSON(w, http.StatusOK, accessToken)
+	_ = httpx.SuccessJSON(w, http.StatusOK, httpx.JSON{
+		"accessToken": accessToken,
+	})
 }
 
 func (h *OAuthHandler) Logout(w http.ResponseWriter, r *http.Request) {}

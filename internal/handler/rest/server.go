@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/gorilla/sessions"
 	"gitlab.com/jodworkspace/mvp/pkg/monitor/metrics"
 
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
-	mw "gitlab.com/jodworkspace/mvp/internal/handler/rest/middleware"
+	"gitlab.com/jodworkspace/mvp/internal/handler/rest/middleware"
 	v1 "gitlab.com/jodworkspace/mvp/internal/handler/rest/v1"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
@@ -78,10 +78,10 @@ func (s *Server) Run() {
 func (s *Server) RestMux() *chi.Mux {
 	r := chi.NewRouter()
 
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	r.Use(chimiddleware.RequestID)
+	r.Use(chimiddleware.RealIP)
+	r.Use(chimiddleware.Logger)
+	r.Use(chimiddleware.Recoverer)
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   s.cfg.CORS.AllowedOrigins,
@@ -104,11 +104,10 @@ func (s *Server) RestMux() *chi.Mux {
 	r.Post("/api/v1/login/github", s.oauthHandler.Login(domain.ProviderGitHub))
 
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Use(mw.SessionAuth(s.sessionStore, domain.SessionCookieName))
-
+		r.Use(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName))
 		r.Get("/userinfo", s.oauthHandler.GetUserInfo)
 
-		r.With(mw.Pagination).Get("/tasks", s.taskHandler.List)
+		r.With(middleware.Filter).Get("/tasks", s.taskHandler.List)
 		r.Post("/tasks", s.taskHandler.Create)
 		r.Get("/tasks/{id}", s.taskHandler.Get)
 		r.Put("/tasks/{id}", s.taskHandler.Update)

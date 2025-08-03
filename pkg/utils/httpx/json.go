@@ -64,3 +64,10 @@ func ErrorJSON(w http.ResponseWriter, errResp ErrorResponse) error {
 
 	return WriteJSON(w, errResp.StatusCode, errResp)
 }
+
+// SuccessJSON is a shortcut of WriteJSON that writes a success response with a status code and message.
+func SuccessJSON(w http.ResponseWriter, status int, data JSON, headers ...http.Header) error {
+	data["status"] = status
+	data["message"] = "success"
+	return WriteJSON(w, status, data, headers...)
+}

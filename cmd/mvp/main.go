@@ -62,7 +62,7 @@ func main() {
 			transactionManager := postgresrepo.NewTransactionManager(pgConn)
 
 			taskRepository := postgresrepo.NewTaskRepository(pgConn)
-			taskUC := taskuc.NewTaskUsecase(taskRepository, zapLogger)
+			taskUC := taskuc.NewTaskUseCase(taskRepository, zapLogger)
 			taskHandler := v1.NewTaskHandler(taskUC, zapLogger)
 
 			userRepository := postgresrepo.NewUserRepository(pgConn)

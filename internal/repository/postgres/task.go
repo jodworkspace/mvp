@@ -2,6 +2,7 @@ package postgresrepo
 
 import (
 	"context"
+	"fmt"
 	"github.com/Masterminds/squirrel"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
@@ -15,11 +16,16 @@ func NewTaskRepository(conn postgres.Client) *TaskRepository {
 	return &TaskRepository{conn}
 }
 
-func (r *TaskRepository) Count(ctx context.Context) (int64, error) {
-	query, args, err := r.QueryBuilder().
+func (r *TaskRepository) Count(ctx context.Context, filter *domain.Filter) (int64, error) {
+	builder := r.QueryBuilder().
 		Select("count(*)").
-		From(domain.TableTask).
-		ToSql()
+		From(domain.TableTask)
+
+	for key, value := range filter.Conditions {
+		builder = builder.Where(squirrel.Eq{key: value})
+	}
+
+	query, args, err := builder.ToSql()
 	if err != nil {
 		return 0, err
 	}
@@ -33,13 +39,19 @@ func (r *TaskRepository) Count(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-func (r *TaskRepository) List(ctx context.Context, page, pageSize uint64) ([]*domain.Task, error) {
-	query, args, err := r.QueryBuilder().
+func (r *TaskRepository) List(ctx context.Context, filter *domain.Filter) ([]*domain.Task, error) {
+	builder := r.QueryBuilder().
 		Select(domain.TaskAllColumns...).
 		From(domain.TableTask).
-		Limit(pageSize).
-		Offset((page - 1) * pageSize).
-		ToSql()
+		Limit(filter.PageSize).
+		Offset((filter.Page - 1) * filter.PageSize).
+		OrderBy(fmt.Sprintf("%s DESC", domain.ColCreatedAt))
+
+	for key, value := range filter.Conditions {
+		builder = builder.Where(squirrel.Eq{key: value})
+	}
+
+	query, args, err := builder.ToSql()
 	if err != nil {
 		return nil, err
 	}
@@ -49,18 +61,18 @@ func (r *TaskRepository) List(ctx context.Context, page, pageSize uint64) ([]*do
 		return nil, err
 	}
 
-	var tasks []*domain.Task
+	tasks := make([]*domain.Task, 0)
 	for rows.Next() {
 		var task domain.Task
 		err = rows.Scan(
 			&task.ID,
 			&task.Title,
 			&task.Details,
-			&task.PriorityLevel,
+			&task.Priority,
 			&task.IsCompleted,
 			&task.StartDate,
 			&task.DueDate,
-			&task.OwnerUserID,
+			&task.OwnerID,
 			&task.CreatedAt,
 			&task.UpdatedAt,
 		)
@@ -81,11 +93,11 @@ func (r *TaskRepository) Create(ctx context.Context, task *domain.Task) (*domain
 			task.ID,
 			task.Title,
 			task.Details,
-			task.PriorityLevel,
+			task.Priority,
 			task.IsCompleted,
 			task.StartDate,
 			task.DueDate,
-			task.OwnerUserID,
+			task.OwnerID,
 			task.CreatedAt,
 			task.UpdatedAt,
 		).
@@ -98,6 +110,7 @@ func (r *TaskRepository) Create(ctx context.Context, task *domain.Task) (*domain
 	if err != nil {
 		return nil, err
 	}
+
 	return task, nil
 }
 
@@ -116,11 +129,11 @@ func (r *TaskRepository) Get(ctx context.Context, id uint64) (*domain.Task, erro
 		&task.ID,
 		&task.Title,
 		&task.Details,
-		&task.PriorityLevel,
+		&task.Priority,
 		&task.IsCompleted,
 		&task.StartDate,
 		&task.DueDate,
-		&task.OwnerUserID,
+		&task.OwnerID,
 		&task.CreatedAt,
 		&task.UpdatedAt,
 	)

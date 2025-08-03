@@ -1,4 +1,4 @@
-package redis
+package redisrepo
 
 import (
 	"gitlab.com/jodworkspace/mvp/pkg/db/redis"

@@ -3,27 +3,27 @@ package domain
 import "time"
 
 type Task struct {
-	ID            string    `json:"id" db:"id"`
-	Title         string    `json:"title"`
-	Details       string    `json:"details"`
-	IsCompleted   bool      `json:"isCompleted"`
-	PriorityLevel int       `json:"priorityLevel"`
-	StartDate     time.Time `json:"startDate"`
-	DueDate       time.Time `json:"dueDate"`
-	OwnerUserID   string    `json:"ownerUserId"`
-	CreatedAt     time.Time `json:"createdAt" db:"created_at"`
-	UpdatedAt     time.Time `json:"updatedAt" db:"updated_at"`
+	ID          string     `json:"id" db:"id"`
+	Title       string     `json:"title"`
+	Details     string     `json:"details"`
+	IsCompleted bool       `json:"isCompleted"`
+	Priority    int        `json:"priority"`
+	StartDate   *time.Time `json:"startDate"`
+	DueDate     *time.Time `json:"dueDate"`
+	OwnerID     string     `json:"ownerID"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
 }
 
 const (
-	TableTask            = "tasks"
-	ColTaskTitle         = "title"
-	ColTaskDetails       = "details"
-	ColTaskPriorityLevel = "priority_level"
-	ColTaskIsCompleted   = "is_completed"
-	ColTaskStartDate     = "start_date"
-	ColTaskDueDate       = "due_date"
-	ColTaskOwnerID       = "owner_id"
+	TableTask          = "tasks"
+	ColTaskTitle       = "title"
+	ColTaskDetails     = "details"
+	ColTaskPriority    = "priority"
+	ColTaskIsCompleted = "is_completed"
+	ColTaskStartDate   = "start_date"
+	ColTaskDueDate     = "due_date"
+	ColTaskOwnerID     = "owner_id"
 )
 
 var (
@@ -31,7 +31,7 @@ var (
 		ColID,
 		ColTaskTitle,
 		ColTaskDetails,
-		ColTaskPriorityLevel,
+		ColTaskPriority,
 		ColTaskIsCompleted,
 		ColTaskStartDate,
 		ColTaskDueDate,

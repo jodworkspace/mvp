@@ -4,6 +4,7 @@ import (
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	taskuc "gitlab.com/jodworkspace/mvp/internal/usecase/task"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/helper"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
 	"net/http"
 )
@@ -21,11 +22,11 @@ func NewTaskHandler(taskUC taskuc.TaskUseCase, zl *logger.ZapLogger) *TaskHandle
 }
 
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
-	pagination := r.Context().Value("pagination").(*domain.Pagination)
-	page := uint64(pagination.Page)
-	pageSize := uint64(pagination.PageSize)
+	filter, _ := r.Context().Value("filter").(*domain.Filter)
+	ownerID, _ := r.Context().Value("user_id").(string)
+	filter.Conditions[domain.ColTaskOwnerID] = ownerID
 
-	tasks, err := h.taskUC.List(r.Context(), page, pageSize)
+	tasks, err := h.taskUC.List(r.Context(), filter)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -33,7 +34,7 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	total, err := h.taskUC.Count(r.Context())
+	total, err := h.taskUC.Count(r.Context(), filter)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -41,17 +42,67 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = httpx.WriteJSON(w, http.StatusOK, httpx.JSON{
-		"status": "ok",
-		"page":   page,
-		"total":  total,
-		"tasks":  tasks,
+	_ = httpx.SuccessJSON(w, http.StatusOK, httpx.JSON{
+		"page":  filter.Page,
+		"total": total,
+		"tasks": tasks,
 	})
 }
 
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
-	w.WriteHeader(http.StatusOK)
+	var input struct {
+		Title     string `json:"title" validate:"required"`
+		Priority  int    `json:"priority" validate:"required"`
+		StartDate string `json:"startDate"`
+		DueDate   string `json:"dueDate" `
+	}
+
+	if err := BindWithValidation(r, &input); err != nil {
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	startDate, err := helper.ParseISO8601Date(input.StartDate)
+	if err != nil {
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "invalid start date format",
+		})
+		return
+	}
+
+	dueDate, err := helper.ParseISO8601Date(input.DueDate)
+	if err != nil {
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "invalid due date format",
+		})
+	}
+
+	ownerID, _ := r.Context().Value("user_id").(string)
+	task := &domain.Task{
+		Title:     input.Title,
+		Priority:  input.Priority,
+		StartDate: startDate,
+		DueDate:   dueDate,
+		OwnerID:   ownerID,
+	}
+
+	err = h.taskUC.Create(r.Context(), task)
+	if err != nil {
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	_ = httpx.SuccessJSON(w, http.StatusCreated, httpx.JSON{
+		"task": task,
+	})
 }
 
 func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {}

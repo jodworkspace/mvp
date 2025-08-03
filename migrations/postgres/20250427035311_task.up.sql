@@ -3,9 +3,8 @@ CREATE TABLE IF NOT EXISTS tasks (
     title VARCHAR(255) NOT NULL,
     details TEXT,
     is_completed BOOLEAN DEFAULT FALSE,
-    priority_level INT,
+    priority INT,
     start_date TIMESTAMP,
-    estimated_duration BIGINT, -- store duration in nanoseconds
     due_date TIMESTAMP,
     owner_id UUID NOT NULL,
     created_at TIMESTAMP,

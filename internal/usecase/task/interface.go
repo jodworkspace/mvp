@@ -6,8 +6,8 @@ import (
 )
 
 type TaskUseCase interface {
-	Count(ctx context.Context) (int64, error)
-	List(ctx context.Context, page uint64, pageSize uint64) ([]*domain.Task, error)
+	Count(ctx context.Context, filter *domain.Filter) (int64, error)
+	List(ctx context.Context, filter *domain.Filter) ([]*domain.Task, error)
 	Create(ctx context.Context, task *domain.Task) error
 	Get(ctx context.Context, id uint64) (*domain.Task, error)
 	Update(ctx context.Context, task *domain.Task) error
@@ -15,8 +15,8 @@ type TaskUseCase interface {
 }
 
 type TaskRepository interface {
-	Count(ctx context.Context) (int64, error)
-	List(ctx context.Context, page uint64, pageSize uint64) ([]*domain.Task, error)
+	Count(ctx context.Context, filter *domain.Filter) (int64, error)
+	List(ctx context.Context, filter *domain.Filter) ([]*domain.Task, error)
 	Create(ctx context.Context, task *domain.Task) (*domain.Task, error)
 	Get(ctx context.Context, id uint64) (*domain.Task, error)
 	Update(ctx context.Context, task *domain.Task) (*domain.Task, error)

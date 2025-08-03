@@ -2,7 +2,6 @@ package helper
 
 import (
 	"encoding/base64"
-	"strconv"
 )
 
 func Base64Encode(s []byte) []byte {
@@ -21,17 +20,4 @@ func Base64Decode(s []byte) ([]byte, error) {
 	}
 
 	return decoded[:n], nil
-}
-
-func StringToUint64(s string) uint64 {
-	if s == "" {
-		return 0
-	}
-
-	number, err := strconv.ParseUint(s, 10, 64)
-	if err != nil {
-		return 0
-	}
-
-	return number
 }
