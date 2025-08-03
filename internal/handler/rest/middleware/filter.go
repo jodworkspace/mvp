@@ -29,7 +29,7 @@ func Filter(next http.Handler) http.Handler {
 
 		filter := &domain.Filter{
 			Page:       getUInt64(queryParams, "page"),
-			PageSize:   getUInt64(queryParams, "page_size"),
+			PageSize:   getUInt64(queryParams, "pageSize"),
 			Conditions: map[string]any{},
 		}
 

@@ -63,7 +63,7 @@ func (u *taskUseCase) Create(ctx context.Context, task *domain.Task) error {
 	return nil
 }
 
-func (u *taskUseCase) Get(ctx context.Context, id uint64) (*domain.Task, error) {
+func (u *taskUseCase) Get(ctx context.Context, id string) (*domain.Task, error) {
 	return nil, nil
 }
 
@@ -71,6 +71,16 @@ func (u *taskUseCase) Update(ctx context.Context, task *domain.Task) error {
 	return nil
 }
 
-func (u *taskUseCase) Delete(ctx context.Context, id uint64) error {
+func (u *taskUseCase) Delete(ctx context.Context, id string) error {
+	err := u.taskRepo.Delete(ctx, id)
+	if err != nil {
+		u.logger.Error(
+			"taskUseCase - taskRepo.Delete",
+			zap.String("task_id", id),
+			zap.Error(err),
+		)
+		return err
+	}
+
 	return nil
 }

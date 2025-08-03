@@ -109,4 +109,27 @@ func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {}
 
 func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {}
 
-func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {}
+func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	taskID := r.PathValue("id")
+	if taskID == "" {
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "invalid id",
+			Details: map[string]any{
+				"id": taskID,
+			},
+		})
+		return
+	}
+
+	err := h.taskUC.Delete(r.Context(), taskID)
+	if err != nil {
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	_ = httpx.WriteJSON(w, http.StatusNoContent, nil)
+}

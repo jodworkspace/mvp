@@ -3,7 +3,7 @@ package domain
 import "time"
 
 type Task struct {
-	ID          string     `json:"id" db:"id"`
+	ID          string     `json:"id"`
 	Title       string     `json:"title"`
 	Details     string     `json:"details"`
 	IsCompleted bool       `json:"isCompleted"`

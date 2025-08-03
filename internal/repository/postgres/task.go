@@ -114,7 +114,7 @@ func (r *TaskRepository) Create(ctx context.Context, task *domain.Task) (*domain
 	return task, nil
 }
 
-func (r *TaskRepository) Get(ctx context.Context, id uint64) (*domain.Task, error) {
+func (r *TaskRepository) Get(ctx context.Context, id string) (*domain.Task, error) {
 	query, args, err := r.QueryBuilder().
 		Select(domain.TaskAllColumns...).
 		From(domain.TableTask).
@@ -148,7 +148,7 @@ func (r *TaskRepository) Update(ctx context.Context, task *domain.Task) (*domain
 	return task, nil
 }
 
-func (r *TaskRepository) Delete(ctx context.Context, id uint64) error {
+func (r *TaskRepository) Delete(ctx context.Context, id string) error {
 	query, args, err := r.QueryBuilder().
 		Delete(domain.TableTask).
 		Where(squirrel.Eq{domain.ColID: id}).
