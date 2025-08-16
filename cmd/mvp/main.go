@@ -3,6 +3,9 @@ package main
 import (
 	"encoding/gob"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/gorilla/sessions"
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/urfave/cli/v2"
@@ -17,9 +20,8 @@ import (
 	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
 	"gitlab.com/jodworkspace/mvp/pkg/db/redis"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
+	"gitlab.com/jodworkspace/mvp/pkg/monitor/tracing"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/cipherx"
-	"log"
-	"os"
 )
 
 func main() {
@@ -35,18 +37,22 @@ func main() {
 	)
 	defer pgConn.Pool().Close()
 
-	redisClient, err := redis.NewClient(&goredis.Options{
+	redisClient := goredis.NewClient(&goredis.Options{
 		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
 		Username: cfg.Redis.Username,
 		Password: cfg.Redis.Password,
 		DB:       cfg.Redis.DB,
 	})
+	defer redisClient.Close()
+
+	tracedRedis := tracing.NewTracedRedisClient(redisClient)
+	rdb, err := redis.NewClient(tracedRedis)
 	if err != nil {
 		panic(err)
 	}
 	defer redisClient.Close()
 
-	sessionStore := redis.NewStore(redisClient, "session:", &sessions.Options{
+	sessionStore := redis.NewStore(rdb, "session:", &sessions.Options{
 		Path:     cfg.SessionConfig.CookiePath,
 		Domain:   cfg.SessionConfig.Domain,
 		MaxAge:   cfg.SessionConfig.MaxAge,

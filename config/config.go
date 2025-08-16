@@ -2,11 +2,12 @@ package config
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
-	"github.com/kelseyhightower/envconfig"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
+	"github.com/kelseyhightower/envconfig"
 )
 
 func LoadConfig(envFiles ...string) *Config {

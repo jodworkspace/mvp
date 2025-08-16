@@ -3,11 +3,17 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/gorilla/sessions"
 	"gitlab.com/jodworkspace/mvp/pkg/monitor/metrics"
+
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
 
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
@@ -15,10 +21,6 @@ import (
 	v1 "gitlab.com/jodworkspace/mvp/internal/handler/rest/v1"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
 )
 
 type Server struct {

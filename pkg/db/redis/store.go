@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/gob"
 	"errors"
+	"net/http"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	goredis "github.com/redis/go-redis/v9"
-	"net/http"
 )
 
 // Store implements gorilla/sessions Store interface
@@ -41,7 +43,8 @@ func (s *Store) New(r *http.Request, name string) (*sessions.Session, error) {
 	}
 
 	key := s.keyPrefix + cookie.Value
-	data, err := s.redisClient.Get(r.Context(), key)
+	cmd := s.redisClient.Get(r.Context(), key)
+	data, err := cmd.Bytes()
 	if err != nil {
 		if errors.Is(err, goredis.Nil) {
 			// return a new session if the key does not exist
@@ -51,7 +54,7 @@ func (s *Store) New(r *http.Request, name string) (*sessions.Session, error) {
 	}
 
 	session := sessions.NewSession(s, name)
-	err = gob.NewDecoder(bytes.NewReader([]byte(data))).Decode(&session.Values)
+	err = gob.NewDecoder(bytes.NewReader(data)).Decode(&session.Values)
 	if err != nil {
 		return nil, err
 	}
@@ -89,8 +92,9 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 	}
 
 	key := s.keyPrefix + session.ID
-	_, err = s.redisClient.Set(context.Background(), key, data.Bytes(), session.Options.MaxAge)
-	if err != nil {
+	exp := time.Duration(session.Options.MaxAge) * time.Second
+	cmd := s.redisClient.Set(context.Background(), key, data.Bytes(), exp)
+	if err = cmd.Err(); err != nil {
 		return err
 	}
 
