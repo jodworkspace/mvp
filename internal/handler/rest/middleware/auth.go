@@ -2,10 +2,11 @@ package middleware
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/gorilla/sessions"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
-	"net/http"
 )
 
 func SessionAuth(store sessions.Store, name string) Middleware {

@@ -2,6 +2,9 @@ package v1
 
 import (
 	"errors"
+	"net/http"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"gitlab.com/jodworkspace/mvp/config"
@@ -12,8 +15,6 @@ import (
 	"gitlab.com/jodworkspace/mvp/pkg/utils/errorx"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
 )
 
 type OAuthHandler struct {
@@ -133,15 +134,6 @@ func (h *OAuthHandler) Login(provider string) http.HandlerFunc {
 			})
 			return
 		}
-
-		http.SetCookie(w, &http.Cookie{
-			Value:    session.ID,
-			Name:     session.Name(),
-			Path:     session.Options.Path,
-			MaxAge:   session.Options.MaxAge,
-			Expires:  time.Now().Add(time.Duration(session.Options.MaxAge) * time.Second),
-			HttpOnly: session.Options.HttpOnly,
-		})
 
 		_ = httpx.SuccessJSON(w, http.StatusOK, httpx.JSON{
 			"user": existedUser,

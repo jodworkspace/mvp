@@ -98,5 +98,14 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 		return err
 	}
 
+	http.SetCookie(w, &http.Cookie{
+		Value:    session.ID,
+		Name:     session.Name(),
+		Path:     session.Options.Path,
+		MaxAge:   session.Options.MaxAge,
+		Expires:  time.Now().Add(exp),
+		HttpOnly: session.Options.HttpOnly,
+	})
+
 	return nil
 }

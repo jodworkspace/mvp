@@ -93,15 +93,16 @@ func (s *Server) RestMux() *chi.Mux {
 		MaxAge:           300,
 	}))
 
+	r.Use(metrics.HTTPMetricsMiddleware)
+
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		data, _ := json.Marshal(httpx.JSON{"status": "ok"})
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(data)
 	})
 
-	prometheusClient := metrics.NewPrometheusClient()
+	r.Handle("/metrics", metrics.PrometheusHandler())
 
-	r.Handle("/metrics", prometheusClient.HTTPHandler())
 	r.Post("/api/v1/login/google", s.oauthHandler.Login(domain.ProviderGoogle))
 	r.Post("/api/v1/login/github", s.oauthHandler.Login(domain.ProviderGitHub))
 

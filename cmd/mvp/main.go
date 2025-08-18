@@ -20,13 +20,16 @@ import (
 	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
 	"gitlab.com/jodworkspace/mvp/pkg/db/redis"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
-	"gitlab.com/jodworkspace/mvp/pkg/monitor/tracing"
+	"gitlab.com/jodworkspace/mvp/pkg/monitor/metrics"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/cipherx"
 )
 
 func main() {
 	initGob()
+
 	cfg := config.LoadConfig()
+	initMetrics()
+
 	zapLogger := logger.MustNewLogger(cfg.Logger.Level)
 	aead := cipherx.MustNewAEAD([]byte(cfg.Server.AESKey))
 
@@ -45,8 +48,7 @@ func main() {
 	})
 	defer redisClient.Close()
 
-	tracedRedis := tracing.NewTracedRedisClient(redisClient)
-	rdb, err := redis.NewClient(tracedRedis)
+	rdb, err := redis.NewClient(redisClient)
 	if err != nil {
 		panic(err)
 	}
@@ -96,4 +98,14 @@ func main() {
 func initGob() {
 	gob.Register(&domain.User{})
 	gob.Register(&domain.Document{})
+}
+
+func initMetrics() {
+	err := metrics.Init()
+	if err != nil {
+		panic(err)
+	}
+
+	metrics.InitDBMetrics()
+	metrics.InitHTTPMetrics()
 }
