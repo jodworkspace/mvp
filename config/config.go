@@ -25,14 +25,15 @@ func LoadConfig(envFiles ...string) *Config {
 }
 
 type Config struct {
-	Server        *ServerConfig
-	SessionConfig *SessionConfig     `envconfig:"session"`
-	CORS          *CORSConfig        `envconfig:"cors"`
-	Token         *TokenConfig       `envconfig:"token"`
-	Logger        *LoggerConfig      `envconfig:"logger"`
-	GoogleOAuth   *GoogleOAuthConfig `envconfig:"google_oauth"`
-	Redis         *RedisConfig       `envconfig:"redis"`
-	Postgres      *PostgresConfig    `envconfig:"postgres"`
+	Server      *ServerConfig
+	Monitor     *MonitorConfig     `envconfig:"monitor"`
+	Session     *SessionConfig     `envconfig:"session"`
+	CORS        *CORSConfig        `envconfig:"cors"`
+	Token       *TokenConfig       `envconfig:"token"`
+	Logger      *LoggerConfig      `envconfig:"logger"`
+	GoogleOAuth *GoogleOAuthConfig `envconfig:"google_oauth"`
+	Redis       *RedisConfig       `envconfig:"redis"`
+	Postgres    *PostgresConfig    `envconfig:"postgres"`
 }
 
 type ServerConfig struct {
@@ -40,6 +41,11 @@ type ServerConfig struct {
 	Host    string `envconfig:"host" default:"localhost"`
 	Port    string `envconfig:"port" default:"9731"`
 	AESKey  string `envconfig:"aes_key" required:"true"`
+}
+
+type MonitorConfig struct {
+	ServiceName       string `envconfig:"service_name" default:"gitlab.com/jodworkspace/mvp"`
+	CollectorEndpoint string `envconfig:"collector_endpoint" default:"http://localhost:4317"`
 }
 
 type SessionConfig struct {

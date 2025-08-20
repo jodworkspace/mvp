@@ -3,6 +3,7 @@ package postgresrepo
 import (
 	"context"
 	"fmt"
+
 	"github.com/Masterminds/squirrel"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"

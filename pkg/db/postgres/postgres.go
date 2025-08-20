@@ -2,35 +2,16 @@ package postgres
 
 import (
 	"context"
+
 	"github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Client interface {
-	Pool() *pgxpool.Pool
-	QueryBuilder() squirrel.StatementBuilderType
-}
-
-type postgresConn struct {
-	PgxPool    *pgxpool.Pool
-	SQLBuilder squirrel.StatementBuilderType
-}
-
-func (c *postgresConn) Pool() *pgxpool.Pool {
-	return c.PgxPool
-}
-
-func (c *postgresConn) QueryBuilder() squirrel.StatementBuilderType {
-	return c.SQLBuilder
-}
-
-func MustNewPostgresConnection(dsn string, options ...Option) Client {
-	c, err := NewPostgresConnection(dsn, options...)
-	if err != nil {
-		panic(err)
-	}
-
-	return c
+type client struct {
+	pgxPool    *pgxpool.Pool
+	sqlBuilder squirrel.StatementBuilderType
 }
 
 func NewPostgresConnection(dsn string, options ...Option) (Client, error) {
@@ -53,10 +34,46 @@ func NewPostgresConnection(dsn string, options ...Option) (Client, error) {
 		return nil, err
 	}
 
-	pgc := &postgresConn{
-		SQLBuilder: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
-		PgxPool:    pool,
+	pgc := &client{
+		pgxPool:    pool,
+		sqlBuilder: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
 	}
 
 	return pgc, nil
+}
+
+func (c *client) Pool() *pgxpool.Pool {
+	return c.pgxPool
+}
+
+func (c *client) QueryBuilder() squirrel.StatementBuilderType {
+	return c.sqlBuilder
+}
+
+func (c *client) Close() {
+	c.pgxPool.Close()
+}
+
+func (c *client) Ping(ctx context.Context) error {
+	return c.pgxPool.Ping(ctx)
+}
+
+func (c *client) Acquire(ctx context.Context) (*pgxpool.Conn, error) {
+	return c.pgxPool.Acquire(ctx)
+}
+
+func (c *client) Begin(ctx context.Context) (pgx.Tx, error) {
+	return c.pgxPool.Begin(ctx)
+}
+
+func (c *client) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+	return c.pgxPool.Query(ctx, sql, args...)
+}
+
+func (c *client) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
+	return c.pgxPool.QueryRow(ctx, sql, args...)
+}
+
+func (c *client) Exec(ctx context.Context, sql string, args ...any) (commandTag pgconn.CommandTag, err error) {
+	return c.pgxPool.Exec(ctx, sql, args...)
 }

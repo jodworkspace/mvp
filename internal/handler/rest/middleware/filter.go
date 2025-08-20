@@ -2,11 +2,12 @@ package middleware
 
 import (
 	"context"
-	"gitlab.com/jodworkspace/mvp/config"
-	"gitlab.com/jodworkspace/mvp/internal/domain"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"gitlab.com/jodworkspace/mvp/config"
+	"gitlab.com/jodworkspace/mvp/internal/domain"
 )
 
 func getUInt64(values url.Values, key string) uint64 {
