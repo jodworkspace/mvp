@@ -73,7 +73,7 @@ func (m *Manager) Init(ctx context.Context) (func(context.Context) error, error)
 	m.provider = sdkmetric.NewMeterProvider(
 		sdkmetric.WithResource(res),
 		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(otlpExporter,
-			sdkmetric.WithInterval(10*time.Hour), // TODO: make it configurable
+			sdkmetric.WithInterval(10*time.Second), // TODO: make it configurable
 		)),
 		sdkmetric.WithReader(promExporter),
 	)
