@@ -3,6 +3,7 @@ package useruc
 import (
 	"context"
 	"errors"
+
 	"github.com/jackc/pgx/v5"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	postgresrepo "gitlab.com/jodworkspace/mvp/internal/repository/postgres"

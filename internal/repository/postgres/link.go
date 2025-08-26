@@ -2,23 +2,24 @@ package postgresrepo
 
 import (
 	"context"
+
 	"github.com/jackc/pgx/v5"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
 )
 
 type LinkRepository struct {
-	postgres.Client
+	client postgres.Client
 }
 
-func NewLinkRepository(conn postgres.Client) *LinkRepository {
+func NewLinkRepository(pgc postgres.Client) *LinkRepository {
 	return &LinkRepository{
-		Client: conn,
+		client: pgc,
 	}
 }
 
 func (r *LinkRepository) Insert(ctx context.Context, link *domain.Link, tx ...pgx.Tx) error {
-	query, args, err := r.QueryBuilder().
+	query, args, err := r.client.QueryBuilder().
 		Insert(domain.TableLinks).
 		Columns(domain.LinkAllCols...).
 		Values(
@@ -42,5 +43,5 @@ func (r *LinkRepository) Insert(ctx context.Context, link *domain.Link, tx ...pg
 		return tx[0].QueryRow(ctx, query, args...).Scan(&link.UserID)
 	}
 
-	return r.Pool().QueryRow(ctx, query, args...).Scan(&link.UserID)
+	return r.client.Pool().QueryRow(ctx, query, args...).Scan(&link.UserID)
 }

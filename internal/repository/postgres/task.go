@@ -10,15 +10,17 @@ import (
 )
 
 type TaskRepository struct {
-	postgres.Client
+	client postgres.Client
 }
 
-func NewTaskRepository(conn postgres.Client) *TaskRepository {
-	return &TaskRepository{conn}
+func NewTaskRepository(pgc postgres.Client) *TaskRepository {
+	return &TaskRepository{
+		client: pgc,
+	}
 }
 
 func (r *TaskRepository) Count(ctx context.Context, filter *domain.Filter) (int64, error) {
-	builder := r.QueryBuilder().
+	builder := r.client.QueryBuilder().
 		Select("count(*)").
 		From(domain.TableTask)
 
@@ -32,7 +34,7 @@ func (r *TaskRepository) Count(ctx context.Context, filter *domain.Filter) (int6
 	}
 
 	var count int64
-	err = r.Pool().QueryRow(ctx, query, args...).Scan(&count)
+	err = r.client.Pool().QueryRow(ctx, query, args...).Scan(&count)
 	if err != nil {
 		return 0, err
 	}
@@ -41,7 +43,7 @@ func (r *TaskRepository) Count(ctx context.Context, filter *domain.Filter) (int6
 }
 
 func (r *TaskRepository) List(ctx context.Context, filter *domain.Filter) ([]*domain.Task, error) {
-	builder := r.QueryBuilder().
+	builder := r.client.QueryBuilder().
 		Select(domain.TaskAllColumns...).
 		From(domain.TableTask).
 		Limit(filter.PageSize).
@@ -57,7 +59,7 @@ func (r *TaskRepository) List(ctx context.Context, filter *domain.Filter) ([]*do
 		return nil, err
 	}
 
-	rows, err := r.Pool().Query(ctx, query, args...)
+	rows, err := r.client.Pool().Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +89,7 @@ func (r *TaskRepository) List(ctx context.Context, filter *domain.Filter) ([]*do
 }
 
 func (r *TaskRepository) Create(ctx context.Context, task *domain.Task) (*domain.Task, error) {
-	query, args, err := r.QueryBuilder().
+	query, args, err := r.client.QueryBuilder().
 		Insert(domain.TableTask).
 		Columns(domain.TaskAllColumns...).
 		Values(
@@ -107,7 +109,7 @@ func (r *TaskRepository) Create(ctx context.Context, task *domain.Task) (*domain
 		return nil, err
 	}
 
-	_, err = r.Pool().Exec(ctx, query, args...)
+	_, err = r.client.Pool().Exec(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +118,7 @@ func (r *TaskRepository) Create(ctx context.Context, task *domain.Task) (*domain
 }
 
 func (r *TaskRepository) Get(ctx context.Context, id string) (*domain.Task, error) {
-	query, args, err := r.QueryBuilder().
+	query, args, err := r.client.QueryBuilder().
 		Select(domain.TaskAllColumns...).
 		From(domain.TableTask).
 		Where(squirrel.Eq{domain.ColID: id}).
@@ -126,7 +128,7 @@ func (r *TaskRepository) Get(ctx context.Context, id string) (*domain.Task, erro
 	}
 
 	var task domain.Task
-	err = r.Pool().QueryRow(ctx, query, args...).Scan(
+	err = r.client.Pool().QueryRow(ctx, query, args...).Scan(
 		&task.ID,
 		&task.Title,
 		&task.Details,
@@ -150,7 +152,7 @@ func (r *TaskRepository) Update(ctx context.Context, task *domain.Task) (*domain
 }
 
 func (r *TaskRepository) Delete(ctx context.Context, id string) error {
-	query, args, err := r.QueryBuilder().
+	query, args, err := r.client.QueryBuilder().
 		Delete(domain.TableTask).
 		Where(squirrel.Eq{domain.ColID: id}).
 		ToSql()
@@ -158,7 +160,7 @@ func (r *TaskRepository) Delete(ctx context.Context, id string) error {
 		return err
 	}
 
-	_, err = r.Pool().Exec(ctx, query, args...)
+	_, err = r.client.Pool().Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}

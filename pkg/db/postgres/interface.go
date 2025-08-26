@@ -9,15 +9,21 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Client interface {
-	Pool() *pgxpool.Pool
-	QueryBuilder() squirrel.StatementBuilderType
+type PoolMetrics interface {
+	Stat() *pgxpool.Stat
+}
 
+type Pool interface {
+	PoolMetrics
 	Ping(context.Context) error
-	Acquire(context.Context) (*pgxpool.Conn, error)
-	Begin(context.Context) (pgx.Tx, error)
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
-	Exec(ctx context.Context, sql string, arguments ...any) (commandTag pgconn.CommandTag, err error)
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Begin(context.Context) (pgx.Tx, error)
 	Close()
+}
+
+type Client interface {
+	Pool() Pool
+	QueryBuilder() squirrel.StatementBuilderType
 }

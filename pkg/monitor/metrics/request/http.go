@@ -10,12 +10,12 @@ import (
 
 type HTTPMetrics struct {
 	requestsCounter metric.Int64Counter
-	requestDuration metric.Float64Histogram
+	requestDuration metric.Int64Histogram
 }
 
 func NewHTTPMetrics(
 	requestsCounter metric.Int64Counter,
-	requestDuration metric.Float64Histogram,
+	requestDuration metric.Int64Histogram,
 ) *HTTPMetrics {
 	return &HTTPMetrics{
 		requestsCounter: requestsCounter,
@@ -32,7 +32,7 @@ func (h *HTTPMetrics) Handle(route string, next http.Handler) http.Handler {
 
 		start := time.Now()
 		next.ServeHTTP(rr, r)
-		duration := time.Since(start).Seconds()
+		duration := time.Since(start).Milliseconds()
 
 		h.requestsCounter.Add(r.Context(), 1, metric.WithAttributes(
 			attribute.String("route", route),
@@ -45,7 +45,6 @@ func (h *HTTPMetrics) Handle(route string, next http.Handler) http.Handler {
 			attribute.String("route", route),
 		))
 	})
-
 }
 
 type responseRecorder struct {

@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"io"
 	"time"
 
 	goredis "github.com/redis/go-redis/v9"
@@ -17,18 +18,21 @@ type Client interface {
 	Del(ctx context.Context, keys ...string) *goredis.IntCmd
 	MGet(ctx context.Context, keys ...string) *goredis.SliceCmd
 	MSet(ctx context.Context, values ...any) *goredis.StatusCmd
+	io.Closer
 }
 
 type client struct {
 	rdb *goredis.Client
 }
 
-func NewClient(c *goredis.Client) (Client, error) {
-	if err := c.Ping(context.Background()).Err(); err != nil {
+func NewClient(config *goredis.Options) (Client, error) {
+	rdb := goredis.NewClient(config)
+
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
 		return nil, err
 	}
 
-	return &client{c}, nil
+	return &client{rdb: rdb}, nil
 }
 
 func (r *client) Keys(ctx context.Context, pattern string) *goredis.StringSliceCmd {
@@ -61,4 +65,8 @@ func (r *client) MGet(ctx context.Context, keys ...string) *goredis.SliceCmd {
 
 func (r *client) MSet(ctx context.Context, pairs ...any) *goredis.StatusCmd {
 	return r.rdb.MSet(ctx, pairs...)
+}
+
+func (r *client) Close() error {
+	return r.rdb.Close()
 }

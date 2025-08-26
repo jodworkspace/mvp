@@ -42,7 +42,11 @@ func NewPostgresConnection(dsn string, options ...Option) (Client, error) {
 	return pgc, nil
 }
 
-func (c *client) Pool() *pgxpool.Pool {
+func (c *client) Stat() *pgxpool.Stat {
+	return c.pgxPool.Stat()
+}
+
+func (c *client) Pool() Pool {
 	return c.pgxPool
 }
 
@@ -58,10 +62,6 @@ func (c *client) Ping(ctx context.Context) error {
 	return c.pgxPool.Ping(ctx)
 }
 
-func (c *client) Acquire(ctx context.Context) (*pgxpool.Conn, error) {
-	return c.pgxPool.Acquire(ctx)
-}
-
 func (c *client) Begin(ctx context.Context) (pgx.Tx, error) {
 	return c.pgxPool.Begin(ctx)
 }
@@ -74,6 +74,6 @@ func (c *client) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row 
 	return c.pgxPool.QueryRow(ctx, sql, args...)
 }
 
-func (c *client) Exec(ctx context.Context, sql string, args ...any) (commandTag pgconn.CommandTag, err error) {
+func (c *client) Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
 	return c.pgxPool.Exec(ctx, sql, args...)
 }

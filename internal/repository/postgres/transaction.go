@@ -2,22 +2,23 @@ package postgresrepo
 
 import (
 	"context"
+
 	"github.com/jackc/pgx/v5"
 	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
 )
 
 type TransactionManager struct {
-	db postgres.Client
+	client postgres.Client
 }
 
-func NewTransactionManager(db postgres.Client) *TransactionManager {
+func NewTransactionManager(pgc postgres.Client) *TransactionManager {
 	return &TransactionManager{
-		db: db,
+		client: pgc,
 	}
 }
 
 func (tm *TransactionManager) WithTransaction(ctx context.Context, txFunc func(ctx context.Context, tx pgx.Tx) error) error {
-	tx, err := tm.db.Pool().Begin(ctx)
+	tx, err := tm.client.Pool().Begin(ctx)
 	if err != nil {
 		return err
 	}

@@ -8,6 +8,7 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/gorilla/sessions"
+	"gitlab.com/jodworkspace/mvp/pkg/monitor/metrics"
 	"gitlab.com/jodworkspace/mvp/pkg/monitor/metrics/request"
 
 	"log"
@@ -24,12 +25,13 @@ import (
 )
 
 type Server struct {
-	cfg          *config.Config
-	sessionStore sessions.Store
-	taskHandler  *v1.TaskHandler
-	oauthHandler *v1.OAuthHandler
-	logger       *logger.ZapLogger
-	httpMetrics  *request.HTTPMetrics
+	cfg            *config.Config
+	sessionStore   sessions.Store
+	taskHandler    *v1.TaskHandler
+	oauthHandler   *v1.OAuthHandler
+	logger         *logger.ZapLogger
+	metricsManager *metrics.Manager
+	httpMetrics    *request.HTTPMetrics
 }
 
 func NewServer(
@@ -38,16 +40,18 @@ func NewServer(
 	taskHandler *v1.TaskHandler,
 	oauthHandler *v1.OAuthHandler,
 	logger *logger.ZapLogger,
+	metricsManager *metrics.Manager,
 	httpMetrics *request.HTTPMetrics,
 ) *Server {
 
 	return &Server{
-		cfg:          cfg,
-		sessionStore: sessionStore,
-		taskHandler:  taskHandler,
-		oauthHandler: oauthHandler,
-		logger:       logger,
-		httpMetrics:  httpMetrics,
+		cfg:            cfg,
+		sessionStore:   sessionStore,
+		taskHandler:    taskHandler,
+		oauthHandler:   oauthHandler,
+		logger:         logger,
+		metricsManager: metricsManager,
+		httpMetrics:    httpMetrics,
 	}
 }
 
@@ -96,21 +100,17 @@ func (s *Server) RestMux() *chi.Mux {
 		MaxAge:           300,
 	}))
 
-	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			routePattern := chi.RouteContext(r.Context()).RoutePattern()
-			s.httpMetrics.Handle(routePattern, next)
-		})
-	})
+	ir := s.instrumentedRouter(r)
+	r.Handle("/metrics", s.metricsManager.PrometheusHandler())
 
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+	ir.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		data, _ := json.Marshal(httpx.JSON{"status": "ok"})
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(data)
 	})
 
-	r.Post("/api/v1/login/google", s.oauthHandler.Login(domain.ProviderGoogle))
-	r.Post("/api/v1/login/github", s.oauthHandler.Login(domain.ProviderGitHub))
+	ir.Post("/api/v1/login/google", s.oauthHandler.Login(domain.ProviderGoogle))
+	ir.Post("/api/v1/login/github", s.oauthHandler.Login(domain.ProviderGitHub))
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName))
@@ -123,10 +123,24 @@ func (s *Server) RestMux() *chi.Mux {
 		r.Delete("/tasks/{id}", s.taskHandler.Delete)
 	})
 
-	r.NotFound(NotFoundRoute)
+	ir.NotFound(NotFoundRoute)
+	ir.MethodNotAllowed(NotFoundRoute)
 	return r
 }
 
 func NotFoundRoute(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "not found", http.StatusNotFound)
+}
+
+func (s *Server) instrumentedRouter(r chi.Router) chi.Router {
+	return r.With(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			routePattern := chi.RouteContext(r.Context()).RoutePattern()
+			if routePattern == "" {
+				routePattern = "unmatched"
+			}
+
+			s.httpMetrics.Handle(routePattern, next).ServeHTTP(w, r)
+		})
+	})
 }

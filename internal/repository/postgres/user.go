@@ -10,19 +10,21 @@ import (
 )
 
 type UserRepository struct {
-	postgres.Client
+	client postgres.Client
 }
 
-func NewUserRepository(conn postgres.Client) *UserRepository {
-	return &UserRepository{conn}
+func NewUserRepository(pgc postgres.Client) *UserRepository {
+	return &UserRepository{
+		client: pgc,
+	}
 }
 
 func (r *UserRepository) Exists(ctx context.Context, col string, val any) (bool, error) {
-	return exists(r.Client, ctx, domain.TableUsers, col, val)
+	return exists(r.client, ctx, domain.TableUsers, col, val)
 }
 
 func (r *UserRepository) Insert(ctx context.Context, user *domain.User, tx ...pgx.Tx) error {
-	query, args, err := r.QueryBuilder().
+	query, args, err := r.client.QueryBuilder().
 		Insert(domain.TableUsers).
 		Columns(domain.UserPublicCols...).
 		Values(
@@ -46,11 +48,11 @@ func (r *UserRepository) Insert(ctx context.Context, user *domain.User, tx ...pg
 		return tx[0].QueryRow(ctx, query, args...).Scan(&user.ID)
 	}
 
-	return r.Pool().QueryRow(ctx, query, args...).Scan(&user.ID)
+	return r.client.Pool().QueryRow(ctx, query, args...).Scan(&user.ID)
 }
 
 func (r *UserRepository) Get(ctx context.Context, id string) (*domain.User, error) {
-	query, args, err := r.QueryBuilder().
+	query, args, err := r.client.QueryBuilder().
 		Select(domain.UserPublicCols...).
 		From(domain.TableUsers).
 		Where(squirrel.Eq{domain.ColID: id}).
@@ -60,7 +62,7 @@ func (r *UserRepository) Get(ctx context.Context, id string) (*domain.User, erro
 	}
 
 	var user domain.User
-	err = r.Pool().QueryRow(ctx, query, args...).Scan(
+	err = r.client.Pool().QueryRow(ctx, query, args...).Scan(
 		&user.ID,
 		&user.DisplayName,
 		&user.Email,
@@ -79,7 +81,7 @@ func (r *UserRepository) Get(ctx context.Context, id string) (*domain.User, erro
 }
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
-	query, args, err := r.QueryBuilder().
+	query, args, err := r.client.QueryBuilder().
 		Select(domain.UserPublicCols...).
 		From(domain.TableUsers).
 		Where(squirrel.Eq{domain.ColEmail: email}).
@@ -89,7 +91,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	}
 
 	var user domain.User
-	err = r.Pool().QueryRow(ctx, query, args...).Scan(
+	err = r.client.Pool().QueryRow(ctx, query, args...).Scan(
 		&user.ID,
 		&user.DisplayName,
 		&user.Email,

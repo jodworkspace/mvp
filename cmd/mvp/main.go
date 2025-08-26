@@ -25,6 +25,7 @@ import (
 	"gitlab.com/jodworkspace/mvp/pkg/monitor/metrics"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/cipherx"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -32,11 +33,15 @@ func main() {
 	cfg := config.LoadConfig()
 	ctx := context.Background()
 
-	metricsManager, err := newMetricsManager(cfg.Monitor.ServiceName, cfg.Monitor.CollectorEndpoint)
+	conn, err := grpc.NewClient(cfg.Monitor.CollectorEndpoint,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
 	if err != nil {
 		panic(err)
 	}
+	defer conn.Close()
 
+	metricsManager := metrics.NewManager(cfg.Monitor.ServiceName, conn)
 	shutdown, err := metricsManager.Init(ctx)
 	defer shutdown(ctx)
 
@@ -63,23 +68,18 @@ func main() {
 	}
 	defer pgClient.Pool().Close()
 
-	pgInstrumentedClient := instrument.NewInstrumentedClient(pgClient, dbMetrics)
-
-	redisClient := goredis.NewClient(&goredis.Options{
+	redisClient, err := redis.NewClient(&goredis.Options{
 		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
 		Username: cfg.Redis.Username,
 		Password: cfg.Redis.Password,
 		DB:       cfg.Redis.DB,
 	})
-	defer redisClient.Close()
-
-	rdb, err := redis.NewClient(redisClient)
 	if err != nil {
 		panic(err)
 	}
 	defer redisClient.Close()
 
-	sessionStore := redis.NewStore(rdb, "session:", &sessions.Options{
+	sessionStore := redis.NewStore(redisClient, "session:", &sessions.Options{
 		Path:     cfg.Session.CookiePath,
 		Domain:   cfg.Session.Domain,
 		MaxAge:   cfg.Session.MaxAge,
@@ -91,6 +91,7 @@ func main() {
 		Name:  "Jod",
 		Usage: "MVP Server",
 		Action: func(c *cli.Context) error {
+			pgInstrumentedClient := instrument.NewInstrumentedClient(pgClient, dbMetrics)
 
 			transactionManager := postgresrepo.NewTransactionManager(pgClient)
 
@@ -108,14 +109,15 @@ func main() {
 
 			oauthHandler := v1.NewOAuthHandler(sessionStore, userUC, oauthMng, zapLogger)
 
-			srv := rest.NewServer(cfg, sessionStore, taskHandler, oauthHandler, zapLogger, httpMetrics)
+			srv := rest.NewServer(cfg, sessionStore, taskHandler, oauthHandler, zapLogger, metricsManager, httpMetrics)
 			srv.Run()
 
 			return nil
 		},
 	}
 
-	if err := app.Run(os.Args); err != nil {
+	err = app.Run(os.Args)
+	if err != nil {
 		log.Fatal(err)
 	}
 }
@@ -123,13 +125,4 @@ func main() {
 func initGob() {
 	gob.Register(&domain.User{})
 	gob.Register(&domain.Document{})
-}
-
-func newMetricsManager(serviceName, endpoint string) (*metrics.Manager, error) {
-	conn, err := grpc.NewClient(endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	return metrics.NewManager(serviceName, conn), nil
 }

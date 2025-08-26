@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
@@ -23,9 +24,8 @@ import (
 type Manager struct {
 	serviceName string
 	conn        *grpc.ClientConn
-
-	registry *prometheus.Registry
-	provider *sdkmetric.MeterProvider
+	registry    *prometheus.Registry
+	provider    *sdkmetric.MeterProvider
 }
 
 func NewManager(serviceName string, conn *grpc.ClientConn) *Manager {
@@ -72,8 +72,10 @@ func (m *Manager) Init(ctx context.Context) (func(context.Context) error, error)
 
 	m.provider = sdkmetric.NewMeterProvider(
 		sdkmetric.WithResource(res),
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(otlpExporter,
+			sdkmetric.WithInterval(10*time.Hour), // TODO: make it configurable
+		)),
 		sdkmetric.WithReader(promExporter),
-		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(otlpExporter)),
 	)
 	otel.SetMeterProvider(m.provider)
 
@@ -89,7 +91,10 @@ func (m *Manager) NewHTTPMetrics() (*request.HTTPMetrics, error) {
 		return nil, err
 	}
 
-	requestDuration, err := meter.Float64Histogram("http_request_duration_seconds")
+	requestDuration, err := meter.Int64Histogram("http_request_duration_milliseconds",
+		metric.WithDescription("Request processing duration in milliseconds"),
+		metric.WithUnit("ms"),
+		metric.WithExplicitBucketBoundaries(1, 5, 10, 25, 50, 100, 500, 1000, 2000))
 	if err != nil {
 		return nil, err
 	}
@@ -106,10 +111,10 @@ func (m *Manager) NewPgxMetrics() (*pgx.Metrics, error) {
 		return nil, err
 	}
 
-	queryDuration, err := meter.Float64Histogram("db_query_duration_seconds",
-		metric.WithDescription("Database query duration in seconds"),
-		metric.WithUnit("s"),
-		metric.WithExplicitBucketBoundaries(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2),
+	queryDuration, err := meter.Float64Histogram("db_query_duration_milliseconds",
+		metric.WithDescription("Database query duration in milliseconds"),
+		metric.WithUnit("ms"),
+		metric.WithExplicitBucketBoundaries(1, 5, 10, 25, 50, 100, 500, 1000, 2000),
 	)
 	if err != nil {
 		return nil, err
