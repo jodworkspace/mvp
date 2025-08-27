@@ -41,7 +41,7 @@ func (m *Manager) RegisterOAuthProvider(useCases ...UseCase) {
 func (m *Manager) ExchangeToken(provider, authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error) {
 	uc, exist := m.oauthUC[provider]
 	if !exist {
-		m.logger.Error("OAuthManager - Login", zap.String("provider", provider))
+		m.logger.Error("OAuthManager - ExchangeToken", zap.String("provider", provider))
 		return nil, errorx.ErrInvalidProvider
 	}
 

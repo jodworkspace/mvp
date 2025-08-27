@@ -50,8 +50,8 @@ func (m *Manager) Init(ctx context.Context) (func(context.Context) error, error)
 
 	m.registry = prometheus.NewRegistry()
 	m.registry.MustRegister(
-		collectors.NewGoCollector(),
-		collectors.NewBuildInfoCollector(),
+		//collectors.NewGoCollector(),
+		//collectors.NewBuildInfoCollector(),
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 	)
 

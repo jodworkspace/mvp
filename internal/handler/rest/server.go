@@ -40,18 +40,15 @@ func NewServer(
 	taskHandler *v1.TaskHandler,
 	oauthHandler *v1.OAuthHandler,
 	logger *logger.ZapLogger,
-	metricsManager *metrics.Manager,
 	httpMetrics *request.HTTPMetrics,
 ) *Server {
-
 	return &Server{
-		cfg:            cfg,
-		sessionStore:   sessionStore,
-		taskHandler:    taskHandler,
-		oauthHandler:   oauthHandler,
-		logger:         logger,
-		metricsManager: metricsManager,
-		httpMetrics:    httpMetrics,
+		cfg:          cfg,
+		sessionStore: sessionStore,
+		taskHandler:  taskHandler,
+		oauthHandler: oauthHandler,
+		logger:       logger,
+		httpMetrics:  httpMetrics,
 	}
 }
 
@@ -84,6 +81,25 @@ func (s *Server) Run() {
 	}
 }
 
+func (s *Server) registerOAuthRoutes(router chi.Router) {
+	router.Route("/api/v1/oauth", func(r chi.Router) {
+		ir := s.instrumentedRouter(r)
+		ir.Post("/token", s.oauthHandler.ExchangeToken)
+		ir.With(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName)).Get("/userinfo", s.oauthHandler.GetUserInfo)
+	})
+}
+
+func (s *Server) registerTaskRoutes(router chi.Router) {
+	router.Route("/api/v1/tasks", func(r chi.Router) {
+		r.Use(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName))
+		r.With(middleware.Filter).Get("/", s.taskHandler.List)
+		r.Post("/", s.taskHandler.Create)
+		r.Get("/{id}", s.taskHandler.Get)
+		r.Put("/{id}", s.taskHandler.Update)
+		r.Delete("/{id}", s.taskHandler.Delete)
+	})
+}
+
 func (s *Server) RestMux() *chi.Mux {
 	r := chi.NewRouter()
 
@@ -101,7 +117,6 @@ func (s *Server) RestMux() *chi.Mux {
 	}))
 
 	ir := s.instrumentedRouter(r)
-	r.Handle("/metrics", s.metricsManager.PrometheusHandler())
 
 	ir.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		data, _ := json.Marshal(httpx.JSON{"status": "ok"})
@@ -109,19 +124,8 @@ func (s *Server) RestMux() *chi.Mux {
 		_, _ = w.Write(data)
 	})
 
-	ir.Post("/api/v1/login/google", s.oauthHandler.Login(domain.ProviderGoogle))
-	ir.Post("/api/v1/login/github", s.oauthHandler.Login(domain.ProviderGitHub))
-
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Use(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName))
-		r.Get("/userinfo", s.oauthHandler.GetUserInfo)
-
-		r.With(middleware.Filter).Get("/tasks", s.taskHandler.List)
-		r.Post("/tasks", s.taskHandler.Create)
-		r.Get("/tasks/{id}", s.taskHandler.Get)
-		r.Put("/tasks/{id}", s.taskHandler.Update)
-		r.Delete("/tasks/{id}", s.taskHandler.Delete)
-	})
+	s.registerOAuthRoutes(r)
+	s.registerTaskRoutes(r)
 
 	ir.NotFound(NotFoundRoute)
 	ir.MethodNotAllowed(NotFoundRoute)

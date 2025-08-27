@@ -2,13 +2,14 @@ package oauthuc
 
 import (
 	"encoding/json"
+	"net/http"
+	"time"
+
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
 )
 
 type GoogleUseCase struct {
@@ -18,7 +19,9 @@ type GoogleUseCase struct {
 }
 
 func NewGoogleUseCase(config *config.GoogleOAuthConfig, logger *logger.ZapLogger) *GoogleUseCase {
-	client := httpx.NewHTTPClient(http.Client{})
+	client := httpx.NewHTTPClient(http.Client{
+		Timeout: 10 * time.Second,
+	})
 
 	return &GoogleUseCase{
 		httpClient: client,
@@ -53,13 +56,13 @@ func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectU
 	}
 
 	var respData struct {
-		AccessToken           string        `json:"access_token"`
-		RefreshToken          string        `json:"refresh_token"`
-		TokenType             string        `json:"token_type"`
-		ExpiresIn             time.Duration `json:"expires_in"`
-		RefreshTokenExpiresIn time.Duration `json:"refresh_token_expires_in"`
-		Scope                 string        `json:"scope"`
-		IDToken               string        `json:"id_token"`
+		AccessToken           string `json:"access_token"`
+		RefreshToken          string `json:"refresh_token"`
+		TokenType             string `json:"token_type"`
+		ExpiresIn             int    `json:"expires_in"`
+		RefreshTokenExpiresIn int    `json:"refresh_token_expires_in"`
+		Scope                 string `json:"scope"`
+		IDToken               string `json:"id_token"`
 	}
 	err = json.NewDecoder(resp.Body).Decode(&respData)
 	if err != nil {
@@ -70,8 +73,8 @@ func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectU
 	return &domain.Link{
 		AccessToken:           respData.AccessToken,
 		RefreshToken:          respData.RefreshToken,
-		AccessTokenExpiredAt:  time.Now().Add(respData.ExpiresIn),
-		RefreshTokenExpiredAt: time.Now().Add(respData.RefreshTokenExpiresIn),
+		AccessTokenExpiredAt:  time.Now().Add(time.Duration(respData.ExpiresIn) * time.Second),
+		RefreshTokenExpiredAt: time.Now().Add(time.Duration(respData.RefreshTokenExpiresIn) * time.Second),
 	}, nil
 }
 

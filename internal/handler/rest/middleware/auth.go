@@ -15,8 +15,8 @@ func SessionAuth(store sessions.Store, name string) Middleware {
 			session, err := store.New(r, name)
 			if err != nil || session.IsNew {
 				_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-					StatusCode: http.StatusUnauthorized,
-					Message:    "invalid session",
+					Code:    http.StatusUnauthorized,
+					Message: "invalid session",
 				})
 				return
 			}
@@ -24,8 +24,8 @@ func SessionAuth(store sessions.Store, name string) Middleware {
 			userID, ok := session.Values[domain.SessionKeyUserID].(string)
 			if !ok || userID == "" {
 				_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-					StatusCode: http.StatusUnauthorized,
-					Message:    "invalid session",
+					Code:    http.StatusUnauthorized,
+					Message: "invalid session",
 				})
 				return
 			}

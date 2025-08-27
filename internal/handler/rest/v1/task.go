@@ -1,12 +1,13 @@
 package v1
 
 import (
+	"net/http"
+
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	taskuc "gitlab.com/jodworkspace/mvp/internal/usecase/task"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/helper"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
-	"net/http"
 )
 
 type TaskHandler struct {
@@ -29,7 +30,7 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	tasks, err := h.taskUC.List(r.Context(), filter)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
+			Code: http.StatusInternalServerError,
 		})
 		return
 	}
@@ -37,7 +38,7 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	total, err := h.taskUC.Count(r.Context(), filter)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
+			Code: http.StatusInternalServerError,
 		})
 		return
 	}
@@ -59,8 +60,8 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	if err := BindWithValidation(r, &input); err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    err.Error(),
+			Code:    http.StatusBadRequest,
+			Message: err.Error(),
 		})
 		return
 	}
@@ -68,8 +69,8 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	startDate, err := helper.ParseISO8601Date(input.StartDate)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    "invalid start date format",
+			Code:    http.StatusBadRequest,
+			Message: "invalid start date format",
 		})
 		return
 	}
@@ -77,8 +78,8 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	dueDate, err := helper.ParseISO8601Date(input.DueDate)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    "invalid due date format",
+			Code:    http.StatusBadRequest,
+			Message: "invalid due date format",
 		})
 	}
 
@@ -94,8 +95,8 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	err = h.taskUC.Create(r.Context(), task)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
 		})
 		return
 	}
@@ -113,8 +114,8 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	taskID := r.PathValue("id")
 	if taskID == "" {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    "invalid id",
+			Code:    http.StatusBadRequest,
+			Message: "invalid id",
 			Details: map[string]any{
 				"id": taskID,
 			},
@@ -125,8 +126,8 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	err := h.taskUC.Delete(r.Context(), taskID)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
 		})
 		return
 	}

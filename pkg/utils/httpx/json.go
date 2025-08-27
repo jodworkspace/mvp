@@ -10,9 +10,9 @@ import (
 type JSON map[string]any
 
 type ErrorResponse struct {
-	StatusCode int    `json:"status_code"`
-	Message    string `json:"message"`
-	Details    JSON   `json:"details,omitempty"`
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Details JSON   `json:"details,omitempty"`
 }
 
 func ReadJSON(r *http.Request, data any) error {
@@ -54,15 +54,15 @@ func WriteJSON(w http.ResponseWriter, status int, data any, headers ...http.Head
 }
 
 func ErrorJSON(w http.ResponseWriter, errResp ErrorResponse) error {
-	if errResp.StatusCode == 0 {
-		errResp.StatusCode = http.StatusInternalServerError
+	if errResp.Code == 0 {
+		errResp.Code = http.StatusInternalServerError
 	}
 
 	if errResp.Message == "" {
-		errResp.Message = http.StatusText(errResp.StatusCode)
+		errResp.Message = http.StatusText(errResp.Code)
 	}
 
-	return WriteJSON(w, errResp.StatusCode, errResp)
+	return WriteJSON(w, errResp.Code, errResp)
 }
 
 // SuccessJSON is a shortcut of WriteJSON that writes a success response with a status code and message.

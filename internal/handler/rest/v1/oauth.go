@@ -3,6 +3,7 @@ package v1
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -39,107 +40,109 @@ func NewOAuthHandler(
 	}
 }
 
-func (h *OAuthHandler) Login(provider string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var input struct {
-			AuthorizationCode string `json:"authorizationCode" validate:"required"`
-			CodeVerifier      string `json:"codeVerifier" validate:"required"`
-			RedirectURI       string `json:"redirectUri" validate:"required"`
-		}
-
-		err := BindWithValidation(r, &input)
-		if err != nil {
-			_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-				StatusCode: http.StatusBadRequest,
-				Message:    err.Error(),
-				Details:    httpx.JSON{"error": err.Error()},
-			})
-			return
-		}
-
-		link, err := h.oauthMng.ExchangeToken(provider, input.AuthorizationCode, input.CodeVerifier, input.RedirectURI)
-		if err != nil {
-			_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-				StatusCode: http.StatusInternalServerError,
-				Message:    err.Error(),
-			})
-			return
-		}
-
-		user, err := h.oauthMng.GetUserInfo(provider, link)
-		if err != nil {
-			h.logger.Error("OAuthHandler - Login - GetUserInfo", zap.Error(err))
-			_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-				StatusCode: http.StatusInternalServerError,
-				Message:    err.Error(),
-			})
-			return
-		}
-
-		existedUser, err := h.userUC.GetByEmail(r.Context(), user.Email)
-		if err != nil && !errors.Is(err, errorx.ErrUserNotFound) {
-			h.logger.Error("OAuthHandler - Login - GetByEmail", zap.String("email", user.Email), zap.Error(err))
-			_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-				StatusCode: http.StatusInternalServerError,
-				Message:    err.Error(),
-			})
-			return
-		}
-
-		// onboard new user
-		if existedUser == nil {
-			user.ID = uuid.NewString()
-			user.Active = true
-			user.CreatedAt = time.Now()
-			user.UpdatedAt = user.CreatedAt
-
-			link.UserID = user.ID
-			link.Issuer = provider
-			link.CreatedAt = user.CreatedAt
-			link.UpdatedAt = user.CreatedAt
-
-			err = h.userUC.CreateUserWithLink(r.Context(), user, link)
-			if err != nil {
-				h.logger.Error("OAuthHandler - Login - CreateUserWithLink", zap.Error(err))
-				_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-					StatusCode: http.StatusInternalServerError,
-					Message:    err.Error(),
-				})
-				return
-			}
-
-			existedUser = user
-		}
-
-		session, err := h.sessionStore.New(r, domain.SessionCookieName)
-		if err != nil {
-			h.logger.Error("OAuthHandler - Login - NewSession", zap.Error(err))
-			_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-				StatusCode: http.StatusInternalServerError,
-				Message:    "Failed to get session",
-				Details:    httpx.JSON{"error": err.Error()},
-			})
-			return
-		}
-
-		session.Values[domain.SessionKeyUserID] = existedUser.ID
-		err = session.Save(r, w)
-		if err != nil {
-			_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-				StatusCode: http.StatusInternalServerError,
-				Message:    "Failed to save session",
-				Details: httpx.JSON{
-					"error": err.Error(),
-				},
-			})
-			return
-		}
-
-		_ = httpx.SuccessJSON(w, http.StatusOK, httpx.JSON{
-			"user": existedUser,
-			"link": link,
-		})
+func (h *OAuthHandler) ExchangeToken(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Provider          string `json:"provider" validate:"required"`
+		AuthorizationCode string `json:"authorizationCode" validate:"required"`
+		CodeVerifier      string `json:"codeVerifier" validate:"required"`
+		RedirectURI       string `json:"redirectUri" validate:"required"`
 	}
+
+	err := BindWithValidation(r, &input)
+	if err != nil {
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: err.Error(),
+			Details: httpx.JSON{"error": err.Error()},
+		})
+		return
+	}
+
+	provider := strings.ToLower(input.Provider)
+
+	link, err := h.oauthMng.ExchangeToken(provider, input.AuthorizationCode, input.CodeVerifier, input.RedirectURI)
+	if err != nil {
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
+		return
+	}
+
+	user, err := h.oauthMng.GetUserInfo(provider, link)
+	if err != nil {
+		h.logger.Error("OAuthHandler - ExchangeToken - GetUserInfo", zap.Error(err))
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
+		return
+	}
+
+	existedUser, err := h.userUC.GetByEmail(r.Context(), user.Email)
+	if err != nil && !errors.Is(err, errorx.ErrUserNotFound) {
+		h.logger.Error("OAuthHandler - ExchangeToken - GetByEmail", zap.String("email", user.Email), zap.Error(err))
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// onboard new user
+	if existedUser == nil {
+		user.ID = uuid.NewString()
+		user.Active = true
+		user.CreatedAt = time.Now()
+		user.UpdatedAt = user.CreatedAt
+
+		// TODO: encrypt tokens
+		link.UserID = user.ID
+		link.Issuer = provider
+		link.CreatedAt = user.CreatedAt
+		link.UpdatedAt = user.CreatedAt
+
+		err = h.userUC.CreateUserWithLink(r.Context(), user, link)
+		if err != nil {
+			h.logger.Error("OAuthHandler - ExchangeToken - CreateUserWithLink", zap.Error(err))
+			_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+				Code:    http.StatusInternalServerError,
+				Message: err.Error(),
+			})
+			return
+		}
+
+		existedUser = user
+	}
+
+	session, err := h.sessionStore.New(r, domain.SessionCookieName)
+	if err != nil {
+		h.logger.Error("OAuthHandler - ExchangeToken - NewSession", zap.Error(err))
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to get session",
+			Details: httpx.JSON{"error": err.Error()},
+		})
+		return
+	}
+
+	session.Values[domain.SessionKeyUserID] = existedUser.ID
+	err = session.Save(r, w)
+	if err != nil {
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to save session",
+			Details: httpx.JSON{
+				"error": err.Error(),
+			},
+		})
+		return
+	}
+
+	_ = httpx.SuccessJSON(w, http.StatusOK, httpx.JSON{
+		"user": existedUser,
+		"link": link,
+	})
 }
 
 func (h *OAuthHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {

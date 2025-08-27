@@ -109,7 +109,7 @@ func main() {
 
 			oauthHandler := v1.NewOAuthHandler(sessionStore, userUC, oauthMng, zapLogger)
 
-			srv := rest.NewServer(cfg, sessionStore, taskHandler, oauthHandler, zapLogger, metricsManager, httpMetrics)
+			srv := rest.NewServer(cfg, sessionStore, taskHandler, oauthHandler, zapLogger, httpMetrics)
 			srv.Run()
 
 			return nil
