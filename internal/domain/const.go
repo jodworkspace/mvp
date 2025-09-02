@@ -8,6 +8,9 @@ const (
 	ProviderGoogle = "google" // Google Drive Storage
 	ProviderGitHub = "github" // GitHub Repository Storage
 
-	SessionCookieName = "sid"
-	SessionKeyUserID  = "user_id"
+	SessionCookieName      = "sid"
+	SessionKeyUserID       = "user_id"
+	SessionKeyIssuer       = "issuer"
+	SessionKeyAccessToken  = "access_token"
+	SessionKeyRefreshToken = "refresh_token"
 )

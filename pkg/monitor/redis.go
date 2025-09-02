@@ -1,19 +1,19 @@
-package redis
+package monitor
 
 import "go.opentelemetry.io/otel/metric"
 
-type Metrics struct {
+type RedisMonitor struct {
 	activeConnections metric.Int64UpDownCounter
 	queryCounter      metric.Int64Counter
 	queryDuration     metric.Float64Histogram
 }
 
-func NewMetrics(
+func newRedisMonitor(
 	activeConnections metric.Int64UpDownCounter,
 	queryCounter metric.Int64Counter,
 	queryDuration metric.Float64Histogram,
-) *Metrics {
-	return &Metrics{
+) *RedisMonitor {
+	return &RedisMonitor{
 		activeConnections: activeConnections,
 		queryCounter:      queryCounter,
 		queryDuration:     queryDuration,

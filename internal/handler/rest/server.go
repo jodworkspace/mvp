@@ -4,17 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/go-chi/chi/v5"
-	chimiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
-	"github.com/gorilla/sessions"
-	"gitlab.com/jodworkspace/mvp/pkg/monitor/metrics"
-	"gitlab.com/jodworkspace/mvp/pkg/monitor/metrics/request"
-
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+
+	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	"github.com/gorilla/sessions"
+	"gitlab.com/jodworkspace/mvp/pkg/monitor"
 
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
@@ -30,8 +29,8 @@ type Server struct {
 	taskHandler    *v1.TaskHandler
 	oauthHandler   *v1.OAuthHandler
 	logger         *logger.ZapLogger
-	metricsManager *metrics.Manager
-	httpMetrics    *request.HTTPMetrics
+	monitorManager *monitor.Manager
+	httpMonitor    *monitor.HTTPMonitor
 }
 
 func NewServer(
@@ -40,15 +39,17 @@ func NewServer(
 	taskHandler *v1.TaskHandler,
 	oauthHandler *v1.OAuthHandler,
 	logger *logger.ZapLogger,
-	httpMetrics *request.HTTPMetrics,
+	monitorManager *monitor.Manager,
+	httpMetrics *monitor.HTTPMonitor,
 ) *Server {
 	return &Server{
-		cfg:          cfg,
-		sessionStore: sessionStore,
-		taskHandler:  taskHandler,
-		oauthHandler: oauthHandler,
-		logger:       logger,
-		httpMetrics:  httpMetrics,
+		cfg:            cfg,
+		sessionStore:   sessionStore,
+		taskHandler:    taskHandler,
+		oauthHandler:   oauthHandler,
+		logger:         logger,
+		monitorManager: monitorManager,
+		httpMonitor:    httpMetrics,
 	}
 }
 
@@ -85,18 +86,22 @@ func (s *Server) registerOAuthRoutes(router chi.Router) {
 	router.Route("/api/v1/oauth", func(r chi.Router) {
 		ir := s.instrumentedRouter(r)
 		ir.Post("/token", s.oauthHandler.ExchangeToken)
-		ir.With(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName)).Get("/userinfo", s.oauthHandler.GetUserInfo)
+
+		irWithAuth := ir.With(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName))
+		irWithAuth.Post("/logout", s.oauthHandler.Logout)
+		irWithAuth.Get("/userinfo", s.oauthHandler.GetUserInfo)
 	})
 }
 
 func (s *Server) registerTaskRoutes(router chi.Router) {
 	router.Route("/api/v1/tasks", func(r chi.Router) {
-		r.Use(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName))
-		r.With(middleware.Filter).Get("/", s.taskHandler.List)
-		r.Post("/", s.taskHandler.Create)
-		r.Get("/{id}", s.taskHandler.Get)
-		r.Put("/{id}", s.taskHandler.Update)
-		r.Delete("/{id}", s.taskHandler.Delete)
+		ir := s.instrumentedRouter(r)
+		ir.Use(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName))
+		ir.With(middleware.Filter).Get("/", s.taskHandler.List)
+		ir.Post("/", s.taskHandler.Create)
+		ir.Get("/{id}", s.taskHandler.Get)
+		ir.Put("/{id}", s.taskHandler.Update)
+		ir.Delete("/{id}", s.taskHandler.Delete)
 	})
 }
 
@@ -144,7 +149,7 @@ func (s *Server) instrumentedRouter(r chi.Router) chi.Router {
 				routePattern = "unmatched"
 			}
 
-			s.httpMetrics.Handle(routePattern, next).ServeHTTP(w, r)
+			s.httpMonitor.Handle(routePattern, next).ServeHTTP(w, r)
 		})
 	})
 }

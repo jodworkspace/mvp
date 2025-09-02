@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gorilla/sessions"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/helper"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
 )
 
@@ -30,7 +30,10 @@ func SessionAuth(store sessions.Store, name string) Middleware {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), domain.SessionKeyUserID, userID)
+			ctx := helper.ContextWithValues(r.Context(), map[string]any{
+				domain.SessionKeyUserID: userID,
+				domain.SessionKeyIssuer: session.Values[domain.SessionKeyIssuer],
+			})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

@@ -6,15 +6,15 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
-	pgxmetrics "gitlab.com/jodworkspace/mvp/pkg/monitor/metrics/pgx"
+	pgxmetrics "gitlab.com/jodworkspace/mvp/pkg/monitor"
 )
 
 type InstrumentedPostgresClient struct {
 	postgres.Client
-	metrics *pgxmetrics.Metrics
+	metrics *pgxmetrics.PgxMonitor
 }
 
-func NewInstrumentedClient(client postgres.Client, metrics *pgxmetrics.Metrics) *InstrumentedPostgresClient {
+func NewInstrumentedPostgresClient(client postgres.Client, metrics *pgxmetrics.PgxMonitor) *InstrumentedPostgresClient {
 	return &InstrumentedPostgresClient{
 		Client:  client,
 		metrics: metrics,

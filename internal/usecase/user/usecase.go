@@ -3,6 +3,7 @@ package useruc
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
@@ -81,11 +82,30 @@ func (u *UseCase) CreateLink(ctx context.Context, link *domain.Link) error {
 	return nil
 }
 
-func (u *UseCase) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+func (u *UseCase) GetUser(ctx context.Context, id string) (*domain.User, error) {
+	user, err := u.userRepo.Get(ctx, id)
+	if err != nil {
+		u.logger.Error(
+			"User - UseCase - GetUser - u.userRepo.GetUser",
+			zap.String("user_id", id),
+			zap.Error(err),
+		)
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errorx.ErrUserNotFound
+		}
+
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (u *UseCase) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	user, err := u.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		u.logger.Error(
-			"User - UseCase - GetByEmail - u.userRepo.GetByEmail",
+			"User - UseCase - GetUserByEmail - u.userRepo.GetUserByEmail",
 			zap.String("email", email),
 			zap.Error(err),
 		)
@@ -98,4 +118,41 @@ func (u *UseCase) GetByEmail(ctx context.Context, email string) (*domain.User, e
 	}
 
 	return user, nil
+}
+
+func (u *UseCase) UpdateLink(ctx context.Context, link *domain.Link) error {
+	linkDB, err := u.linkRepo.Get(ctx, link.UserID, link.Issuer)
+	if err != nil {
+		u.logger.Error(
+			"User - UseCase - UpdateLink - u.linkRepo.Get",
+			zap.String("user_id", link.UserID),
+			zap.String("issuer", link.Issuer),
+			zap.Error(err),
+		)
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errorx.ErrLinkNotFound
+		}
+
+		return err
+	}
+
+	linkDB.AccessToken = link.AccessToken
+	linkDB.RefreshToken = link.RefreshToken
+	linkDB.AccessTokenExpiredAt = link.AccessTokenExpiredAt
+	linkDB.RefreshTokenExpiredAt = link.RefreshTokenExpiredAt
+	linkDB.UpdatedAt = time.Now()
+
+	err = u.linkRepo.Update(ctx, linkDB)
+	if err != nil {
+		u.logger.Error(
+			"User - UseCase - UpdateLink - u.linkRepo.Update",
+			zap.String("user_id", link.UserID),
+			zap.String("issuer", link.Issuer),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	return nil
 }

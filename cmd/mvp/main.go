@@ -22,7 +22,7 @@ import (
 	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
 	"gitlab.com/jodworkspace/mvp/pkg/db/redis"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
-	"gitlab.com/jodworkspace/mvp/pkg/monitor/metrics"
+	"gitlab.com/jodworkspace/mvp/pkg/monitor"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/cipherx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -41,16 +41,16 @@ func main() {
 	}
 	defer conn.Close()
 
-	metricsManager := metrics.NewManager(cfg.Monitor.ServiceName, conn)
-	shutdown, err := metricsManager.Init(ctx)
+	monitorManager := monitor.NewManager(cfg.Monitor.ServiceName, cfg.Monitor.MetricInterval, conn)
+	shutdown, err := monitorManager.Init(ctx)
 	defer shutdown(ctx)
 
-	dbMetrics, err := metricsManager.NewPgxMetrics()
+	dbMetrics, err := monitorManager.NewPgxMonitor()
 	if err != nil {
 		panic(err)
 	}
 
-	httpMetrics, err := metricsManager.NewHTTPMetrics()
+	httpMonitor, err := monitorManager.NewHTTPMonitor()
 	if err != nil {
 		panic(err)
 	}
@@ -91,25 +91,31 @@ func main() {
 		Name:  "Jod",
 		Usage: "MVP Server",
 		Action: func(c *cli.Context) error {
-			pgInstrumentedClient := instrument.NewInstrumentedClient(pgClient, dbMetrics)
+			// Instrumented clients
+			baseHTTPClient := httpMonitor.NewTracingClient()
+			instrPostgresClient := instrument.NewInstrumentedPostgresClient(pgClient, dbMetrics)
 
-			transactionManager := postgresrepo.NewTransactionManager(pgClient)
+			// DB Transaction
+			transactionManager := postgresrepo.NewTransactionManager(instrPostgresClient)
 
-			taskRepository := postgresrepo.NewTaskRepository(pgInstrumentedClient)
+			// Tasks
+			taskRepository := postgresrepo.NewTaskRepository(instrPostgresClient)
 			taskUC := taskuc.NewTaskUseCase(taskRepository, zapLogger)
 			taskHandler := v1.NewTaskHandler(taskUC, zapLogger)
 
-			userRepository := postgresrepo.NewUserRepository(pgClient)
-			linkRepository := postgresrepo.NewLinkRepository(pgClient)
+			// Users
+			userRepository := postgresrepo.NewUserRepository(instrPostgresClient)
+			linkRepository := postgresrepo.NewLinkRepository(instrPostgresClient)
 			userUC := useruc.NewUserUseCase(userRepository, linkRepository, transactionManager, aead, zapLogger)
 
-			googleUC := oauthuc.NewGoogleUseCase(cfg.GoogleOAuth, zapLogger)
+			// OAuth
+			googleUC := oauthuc.NewGoogleUseCase(cfg.GoogleOAuth, baseHTTPClient, zapLogger)
 			oauthMng := oauthuc.NewManager(cfg.Token, zapLogger)
 			oauthMng.RegisterOAuthProvider(googleUC)
-
 			oauthHandler := v1.NewOAuthHandler(sessionStore, userUC, oauthMng, zapLogger)
 
-			srv := rest.NewServer(cfg, sessionStore, taskHandler, oauthHandler, zapLogger, httpMetrics)
+			// Start server
+			srv := rest.NewServer(cfg, sessionStore, taskHandler, oauthHandler, zapLogger, monitorManager, httpMonitor)
 			srv.Run()
 
 			return nil

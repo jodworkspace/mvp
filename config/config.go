@@ -44,8 +44,9 @@ type ServerConfig struct {
 }
 
 type MonitorConfig struct {
-	ServiceName       string `envconfig:"service_name" default:"gitlab.com/jodworkspace/mvp"`
-	CollectorEndpoint string `envconfig:"collector_endpoint" default:"localhost:4317"`
+	ServiceName       string        `envconfig:"service_name" default:"gitlab.com/jodworkspace/mvp"`
+	MetricInterval    time.Duration `envconfig:"metric_interval" default:"10s"`
+	CollectorEndpoint string        `envconfig:"collector_endpoint" default:"localhost:4317"`
 }
 
 type SessionConfig struct {

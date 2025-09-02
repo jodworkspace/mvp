@@ -12,6 +12,7 @@ var (
 	ErrInvalidProvider = errors.New("invalid provider")
 
 	ErrUserNotFound = errors.New("user not found")
+	ErrLinkNotFound = errors.New("link not found")
 )
 
 func handleHTTPError(err error) {}

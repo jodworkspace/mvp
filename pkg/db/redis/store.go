@@ -93,9 +93,17 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 
 	key := s.keyPrefix + session.ID
 	exp := time.Duration(session.Options.MaxAge) * time.Second
-	cmd := s.redisClient.Set(context.Background(), key, data.Bytes(), exp)
-	if err = cmd.Err(); err != nil {
-		return err
+
+	if exp < 0 {
+		cmd := s.redisClient.Del(context.Background(), key)
+		if err = cmd.Err(); err != nil {
+			return err
+		}
+	} else {
+		cmd := s.redisClient.Set(context.Background(), key, data.Bytes(), exp)
+		if err = cmd.Err(); err != nil {
+			return err
+		}
 	}
 
 	http.SetCookie(w, &http.Cookie{

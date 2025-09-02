@@ -13,19 +13,18 @@ import (
 )
 
 type GoogleUseCase struct {
-	httpClient httpx.Client
 	config     *config.GoogleOAuthConfig
+	httpClient httpx.Client
 	logger     *logger.ZapLogger
 }
 
-func NewGoogleUseCase(config *config.GoogleOAuthConfig, logger *logger.ZapLogger) *GoogleUseCase {
-	client := httpx.NewHTTPClient(http.Client{
-		Timeout: 10 * time.Second,
-	})
+func NewGoogleUseCase(cfg *config.GoogleOAuthConfig, baseClient http.Client, logger *logger.ZapLogger) *GoogleUseCase {
+	baseClient.Timeout = 10 * time.Second
+	client := httpx.NewHTTPClient(baseClient)
 
 	return &GoogleUseCase{
 		httpClient: client,
-		config:     config,
+		config:     cfg,
 		logger:     logger,
 	}
 }
