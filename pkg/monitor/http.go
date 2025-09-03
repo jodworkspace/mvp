@@ -8,7 +8,10 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/propagation"
 )
+
+var propagator = propagation.TraceContext{}
 
 type httpTracing struct {
 }
@@ -64,7 +67,10 @@ func (w *writerRecorder) WriteHeader(code int) {
 
 func (h *HTTPMonitor) Handle(route string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, span := h.tracer.Start(r.Context(), "http-server")
+		ctx := propagator.Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+		ctx, span := h.tracer.Start(ctx, "http-server",
+			trace.WithSpanKind(trace.SpanKindServer),
+		)
 		defer span.End()
 
 		wr := &writerRecorder{
@@ -97,25 +103,16 @@ func (h *HTTPMonitor) Handle(route string, next http.Handler) http.Handler {
 	})
 }
 
-func (h *HTTPMonitor) NewTracingClient() http.Client {
-	client := http.Client{}
-
-	client.Transport = &tracingTransport{
-		transport: http.DefaultTransport,
-		tracer:    h.tracer,
-	}
-
-	return client
-}
-
 type tracingTransport struct {
 	transport http.RoundTripper
 	tracer    trace.Tracer
 }
 
 func (t *tracingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	_, span := t.tracer.Start(req.Context(), "http-client")
+	ctx, span := t.tracer.Start(req.Context(), "http-client")
 	defer span.End()
+
+	propagator.Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	start := time.Now()
 	resp, err := t.transport.RoundTrip(req)
@@ -135,4 +132,15 @@ func (t *tracingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	)
 
 	return resp, err
+}
+
+func (h *HTTPMonitor) NewTracingClient() http.Client {
+	client := http.Client{}
+
+	client.Transport = &tracingTransport{
+		transport: http.DefaultTransport,
+		tracer:    h.tracer,
+	}
+
+	return client
 }
