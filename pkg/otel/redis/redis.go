@@ -1,4 +1,4 @@
-package monitor
+package otelredis
 
 import "go.opentelemetry.io/otel/metric"
 

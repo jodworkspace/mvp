@@ -13,7 +13,8 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/gorilla/sessions"
-	"gitlab.com/jodworkspace/mvp/pkg/monitor"
+	"gitlab.com/jodworkspace/mvp/pkg/otel"
+	otelhttp "gitlab.com/jodworkspace/mvp/pkg/otel/http"
 
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
@@ -29,8 +30,8 @@ type Server struct {
 	taskHandler    *v1.TaskHandler
 	oauthHandler   *v1.OAuthHandler
 	logger         *logger.ZapLogger
-	monitorManager *monitor.Manager
-	httpMonitor    *monitor.HTTPMonitor
+	monitorManager *otel.Manager
+	httpMonitor    *otelhttp.Monitor
 }
 
 func NewServer(
@@ -39,8 +40,8 @@ func NewServer(
 	taskHandler *v1.TaskHandler,
 	oauthHandler *v1.OAuthHandler,
 	logger *logger.ZapLogger,
-	monitorManager *monitor.Manager,
-	httpMetrics *monitor.HTTPMonitor,
+	monitorManager *otel.Manager,
+	httpMetrics *otelhttp.Monitor,
 ) *Server {
 	return &Server{
 		cfg:            cfg,

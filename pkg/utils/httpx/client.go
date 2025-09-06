@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/url"
@@ -8,7 +9,7 @@ import (
 
 type Client interface {
 	BuildURLWithQuery(base string, query map[string]string) (string, error)
-	DoRequest(method, url string, body io.Reader, headers ...http.Header) (*http.Response, error)
+	DoRequest(ctx context.Context, method, url string, body io.Reader, headers ...http.Header) (*http.Response, error)
 }
 
 type client struct {
@@ -19,8 +20,8 @@ func NewHTTPClient(c http.Client) Client {
 	return &client{c}
 }
 
-func (h *client) DoRequest(method, url string, body io.Reader, headers ...http.Header) (*http.Response, error) {
-	req, err := http.NewRequest(method, url, body)
+func (h *client) DoRequest(ctx context.Context, method, url string, body io.Reader, headers ...http.Header) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
 	}

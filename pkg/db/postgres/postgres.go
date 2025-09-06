@@ -24,12 +24,13 @@ func NewPostgresConnection(dsn string, options ...Option) (Client, error) {
 		opt(dbConfig)
 	}
 
-	pool, err := pgxpool.NewWithConfig(context.Background(), dbConfig)
+	ctx := context.Background()
+	pool, err := pgxpool.NewWithConfig(ctx, dbConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = pool.Ping(context.Background()); err != nil {
+	if err = pool.Ping(ctx); err != nil {
 		pool.Close()
 		return nil, err
 	}

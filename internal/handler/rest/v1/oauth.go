@@ -61,7 +61,7 @@ func (h *OAuthHandler) ExchangeToken(w http.ResponseWriter, r *http.Request) {
 
 	provider := strings.ToLower(input.Provider)
 
-	link, err := h.oauthMng.ExchangeToken(provider, input.AuthorizationCode, input.CodeVerifier, input.RedirectURI)
+	link, err := h.oauthMng.ExchangeToken(r.Context(), provider, input.AuthorizationCode, input.CodeVerifier, input.RedirectURI)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			Code:    http.StatusInternalServerError,
@@ -70,7 +70,7 @@ func (h *OAuthHandler) ExchangeToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.oauthMng.GetUserInfo(provider, link)
+	user, err := h.oauthMng.GetUserInfo(r.Context(), provider, link)
 	if err != nil {
 		h.logger.Error("OAuthHandler - ExchangeToken - GetUserInfo", zap.Error(err))
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
@@ -159,7 +159,7 @@ func (h *OAuthHandler) onboardUser(ctx context.Context, provider string, user *d
 func (h *OAuthHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(domain.SessionKeyUserID).(string)
 
-	user, err := h.userUC.GetUser(context.Background(), userID)
+	user, err := h.userUC.GetUser(r.Context(), userID)
 	if err != nil {
 		code := http.StatusInternalServerError
 		if !errors.Is(err, errorx.ErrUserNotFound) {

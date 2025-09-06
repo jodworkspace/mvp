@@ -1,6 +1,8 @@
 package oauthuc
 
 import (
+	"context"
+
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
@@ -10,8 +12,8 @@ import (
 
 type UseCase interface {
 	Provider() string
-	ExchangeToken(authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error)
-	GetUserInfo(link *domain.Link) (*domain.User, error)
+	ExchangeToken(ctx context.Context, authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error)
+	GetUserInfo(ctx context.Context, link *domain.Link) (*domain.User, error)
 }
 
 type Manager struct {
@@ -38,21 +40,21 @@ func (m *Manager) RegisterOAuthProvider(useCases ...UseCase) {
 	}
 }
 
-func (m *Manager) ExchangeToken(provider, authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error) {
+func (m *Manager) ExchangeToken(ctx context.Context, provider, authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error) {
 	uc, exist := m.oauthUC[provider]
 	if !exist {
 		m.logger.Error("OAuthManager - ExchangeToken", zap.String("provider", provider))
 		return nil, errorx.ErrInvalidProvider
 	}
 
-	return uc.ExchangeToken(authorizationCode, codeVerifier, redirectURI)
+	return uc.ExchangeToken(ctx, authorizationCode, codeVerifier, redirectURI)
 }
 
-func (m *Manager) GetUserInfo(provider string, link *domain.Link) (*domain.User, error) {
+func (m *Manager) GetUserInfo(ctx context.Context, provider string, link *domain.Link) (*domain.User, error) {
 	uc, exist := m.oauthUC[provider]
 	if !exist {
 		return nil, errorx.ErrInvalidProvider
 	}
 
-	return uc.GetUserInfo(link)
+	return uc.GetUserInfo(ctx, link)
 }

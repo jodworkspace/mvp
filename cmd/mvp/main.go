@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/gorilla/sessions"
@@ -14,7 +15,6 @@ import (
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	"gitlab.com/jodworkspace/mvp/internal/handler/rest"
 	v1 "gitlab.com/jodworkspace/mvp/internal/handler/rest/v1"
-	"gitlab.com/jodworkspace/mvp/internal/instrument"
 	postgresrepo "gitlab.com/jodworkspace/mvp/internal/repository/postgres"
 	"gitlab.com/jodworkspace/mvp/internal/usecase/oauth"
 	taskuc "gitlab.com/jodworkspace/mvp/internal/usecase/task"
@@ -22,7 +22,9 @@ import (
 	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
 	"gitlab.com/jodworkspace/mvp/pkg/db/redis"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
-	"gitlab.com/jodworkspace/mvp/pkg/monitor"
+	"gitlab.com/jodworkspace/mvp/pkg/otel"
+	otelhttp "gitlab.com/jodworkspace/mvp/pkg/otel/http"
+	otelpgx "gitlab.com/jodworkspace/mvp/pkg/otel/pgx"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/cipherx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -41,16 +43,23 @@ func main() {
 	}
 	defer conn.Close()
 
-	monitorManager := monitor.NewManager(cfg.Monitor.ServiceName, cfg.Monitor.MetricInterval, conn)
-	shutdown, err := monitorManager.Init(ctx)
+	otelManager := otel.NewManager(&otel.Config{
+		ServiceName:    cfg.Monitor.ServiceName,
+		MetricInterval: cfg.Monitor.MetricInterval,
+	}, otel.WithGRPCConn(conn), otel.WithCustomPrometheus())
+
+	shutdown, err := otelManager.SetupOtelSDK(ctx)
+	if err != nil {
+		panic(err)
+	}
 	defer shutdown(ctx)
 
-	dbMetrics, err := monitorManager.NewPgxMonitor()
+	pgxMonitor, err := otelpgx.NewMonitor()
 	if err != nil {
 		panic(err)
 	}
 
-	httpMonitor, err := monitorManager.NewHTTPMonitor()
+	httpMonitor, err := otelhttp.NewMonitor()
 	if err != nil {
 		panic(err)
 	}
@@ -62,6 +71,7 @@ func main() {
 		cfg.Postgres.DSN(),
 		postgres.WithMaxConns(10),
 		postgres.WithMinConns(2),
+		postgres.WithQueryTrace(pgxMonitor), // TODO: Add metrics + tracer
 	)
 	if err != nil {
 		panic(err)
@@ -92,30 +102,31 @@ func main() {
 		Usage: "MVP Server",
 		Action: func(c *cli.Context) error {
 			// Instrumented clients
-			baseHTTPClient := httpMonitor.NewTracingClient()
-			instrPostgresClient := instrument.NewInstrumentedPostgresClient(pgClient, dbMetrics)
+			httpClient := http.Client{
+				Transport: httpMonitor.TransportWithTracing(),
+			}
 
 			// DB Transaction
-			transactionManager := postgresrepo.NewTransactionManager(instrPostgresClient)
+			transactionManager := postgresrepo.NewTransactionManager(pgClient)
 
 			// Tasks
-			taskRepository := postgresrepo.NewTaskRepository(instrPostgresClient)
+			taskRepository := postgresrepo.NewTaskRepository(pgClient)
 			taskUC := taskuc.NewTaskUseCase(taskRepository, zapLogger)
 			taskHandler := v1.NewTaskHandler(taskUC, zapLogger)
 
 			// Users
-			userRepository := postgresrepo.NewUserRepository(instrPostgresClient)
-			linkRepository := postgresrepo.NewLinkRepository(instrPostgresClient)
+			userRepository := postgresrepo.NewUserRepository(pgClient)
+			linkRepository := postgresrepo.NewLinkRepository(pgClient)
 			userUC := useruc.NewUserUseCase(userRepository, linkRepository, transactionManager, aead, zapLogger)
 
 			// OAuth
-			googleUC := oauthuc.NewGoogleUseCase(cfg.GoogleOAuth, baseHTTPClient, zapLogger)
+			googleUC := oauthuc.NewGoogleUseCase(cfg.GoogleOAuth, httpClient, zapLogger)
 			oauthMng := oauthuc.NewManager(cfg.Token, zapLogger)
 			oauthMng.RegisterOAuthProvider(googleUC)
 			oauthHandler := v1.NewOAuthHandler(sessionStore, userUC, oauthMng, zapLogger)
 
 			// Start server
-			srv := rest.NewServer(cfg, sessionStore, taskHandler, oauthHandler, zapLogger, monitorManager, httpMonitor)
+			srv := rest.NewServer(cfg, sessionStore, taskHandler, oauthHandler, zapLogger, otelManager, httpMonitor)
 			srv.Run()
 
 			return nil

@@ -6,13 +6,13 @@ type Task struct {
 	ID          string     `json:"id"`
 	Title       string     `json:"title"`
 	Details     string     `json:"details"`
-	IsCompleted bool       `json:"isCompleted"`
 	Priority    int        `json:"priority"`
-	StartDate   *time.Time `json:"startDate"`
-	DueDate     *time.Time `json:"dueDate"`
-	OwnerID     string     `json:"ownerID"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   time.Time  `json:"updatedAt"`
+	IsCompleted bool       `json:"isCompleted" db:"is_completed"`
+	StartDate   *time.Time `json:"startDate" db:"start_date"`
+	DueDate     *time.Time `json:"dueDate" db:"due_date"`
+	OwnerID     string     `json:"ownerID" db:"owner_id"`
+	CreatedAt   time.Time  `json:"createdAt" db:"created_at"`
+	UpdatedAt   time.Time  `json:"updatedAt" db:"updated_at"`
 }
 
 const (

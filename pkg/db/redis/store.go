@@ -2,7 +2,6 @@ package redis
 
 import (
 	"bytes"
-	"context"
 	"encoding/gob"
 	"errors"
 	"net/http"
@@ -95,12 +94,12 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 	exp := time.Duration(session.Options.MaxAge) * time.Second
 
 	if exp < 0 {
-		cmd := s.redisClient.Del(context.Background(), key)
+		cmd := s.redisClient.Del(r.Context(), key)
 		if err = cmd.Err(); err != nil {
 			return err
 		}
 	} else {
-		cmd := s.redisClient.Set(context.Background(), key, data.Bytes(), exp)
+		cmd := s.redisClient.Set(r.Context(), key, data.Bytes(), exp)
 		if err = cmd.Err(); err != nil {
 			return err
 		}

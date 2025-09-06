@@ -1,6 +1,7 @@
 package oauthuc
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -33,7 +34,7 @@ func (u *GoogleUseCase) Provider() string {
 	return domain.ProviderGoogle
 }
 
-func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error) {
+func (u *GoogleUseCase) ExchangeToken(ctx context.Context, authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error) {
 	tokenURL, err := u.httpClient.BuildURLWithQuery(u.config.TokenEndpoint, map[string]string{
 		"client_id":     u.config.ClientID,
 		"client_secret": u.config.ClientSecret,
@@ -48,7 +49,7 @@ func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectU
 		return nil, err
 	}
 
-	resp, err := u.httpClient.DoRequest("POST", tokenURL, nil)
+	resp, err := u.httpClient.DoRequest(ctx, "POST", tokenURL, nil)
 	if err != nil {
 		u.logger.Error("GoogleUseCase - ExchangeToken - httpClient.DoRequest", zap.Error(err))
 		return nil, err
@@ -77,7 +78,7 @@ func (u *GoogleUseCase) ExchangeToken(authorizationCode, codeVerifier, redirectU
 	}, nil
 }
 
-func (u *GoogleUseCase) GetUserInfo(link *domain.Link) (*domain.User, error) {
+func (u *GoogleUseCase) GetUserInfo(ctx context.Context, link *domain.Link) (*domain.User, error) {
 	userInfoURL, err := u.httpClient.BuildURLWithQuery(u.config.UserInfoEndpoint, map[string]string{
 		"access_token": link.AccessToken,
 	})
@@ -86,7 +87,7 @@ func (u *GoogleUseCase) GetUserInfo(link *domain.Link) (*domain.User, error) {
 		return nil, err
 	}
 
-	resp, err := u.httpClient.DoRequest("GET", userInfoURL, nil)
+	resp, err := u.httpClient.DoRequest(ctx, "GET", userInfoURL, nil)
 	if err != nil {
 		u.logger.Error("GoogleUseCase - httpClient.DoRequest", zap.Error(err))
 		return nil, err
