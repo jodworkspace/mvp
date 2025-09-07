@@ -1,6 +1,7 @@
 package otelhttp
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -119,6 +120,7 @@ func (h *Monitor) Handle(route string, next http.Handler) http.Handler {
 			attribute.Int64("process_time_ms", duration),
 			semconv.HTTPRequestMethodKey.String(r.Method),
 			semconv.HTTPResponseStatusCodeKey.Int(recorder.status),
+			semconv.HTTPResponseBodySizeKey.Int64(recorder.written),
 		)
 	})
 }
@@ -130,7 +132,9 @@ type tracingTransport struct {
 // RoundTrip implements the http.RoundTripper interface, starting a span for the outgoing request and injecting context.
 func (t *tracingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	tracer := otel.Tracer(tracerName)
-	ctx, span := tracer.Start(req.Context(), "http.client", trace.WithSpanKind(trace.SpanKindClient))
+
+	spanName := fmt.Sprintf("%s%s", req.URL.Host, req.URL.Path)
+	ctx, span := tracer.Start(req.Context(), spanName, trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 
 	parent := trace.SpanContextFromContext(req.Context())
@@ -152,10 +156,10 @@ func (t *tracingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	}
 
 	span.SetAttributes(
-		attribute.String("external_url", req.URL.String()),
-		attribute.String("external_method", req.Method),
-		attribute.Int("external_status_code", resp.StatusCode),
-		attribute.Int64("external_process_time_ms", processTime),
+		attribute.String("url", req.URL.String()),
+		attribute.String("method", req.Method),
+		attribute.Int("status_code", resp.StatusCode),
+		attribute.Int64("process_time_ms", processTime),
 	)
 
 	return resp, err

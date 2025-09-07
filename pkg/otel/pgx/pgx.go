@@ -102,7 +102,7 @@ func (m *Monitor) TraceQueryStart(ctx context.Context, conn *pgx.Conn, data pgx.
 	tracer := otel.Tracer(tracerName)
 
 	operation := opFromSQL(data.SQL)
-	ctx, span := tracer.Start(ctx, "pgx.query",
+	ctx, span := tracer.Start(ctx, operation,
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
 			semconv.DBSystemNamePostgreSQL,

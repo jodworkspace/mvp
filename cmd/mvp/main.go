@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"github.com/gorilla/sessions"
-	goredis "github.com/redis/go-redis/v9"
 	"github.com/urfave/cli/v2"
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
@@ -38,9 +37,7 @@ func main() {
 	conn, err := grpc.NewClient(cfg.Monitor.CollectorEndpoint,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
-	if err != nil {
-		panic(err)
-	}
+	panicOnErr(err)
 	defer conn.Close()
 
 	otelManager := otel.NewManager(&otel.Config{
@@ -49,20 +46,14 @@ func main() {
 	}, otel.WithGRPCConn(conn), otel.WithCustomPrometheus())
 
 	shutdown, err := otelManager.SetupOtelSDK(ctx)
-	if err != nil {
-		panic(err)
-	}
+	panicOnErr(err)
 	defer shutdown(ctx)
 
 	pgxMonitor, err := otelpgx.NewMonitor()
-	if err != nil {
-		panic(err)
-	}
+	panicOnErr(err)
 
 	httpMonitor, err := otelhttp.NewMonitor()
-	if err != nil {
-		panic(err)
-	}
+	panicOnErr(err)
 
 	zapLogger := logger.MustNewLogger(cfg.Logger.Level)
 	aead := cipherx.MustNewAEAD([]byte(cfg.Server.AESKey))
@@ -71,23 +62,21 @@ func main() {
 		cfg.Postgres.DSN(),
 		postgres.WithMaxConns(10),
 		postgres.WithMinConns(2),
-		postgres.WithQueryTrace(pgxMonitor), // TODO: Add metrics + tracer
+		postgres.WithQueryTrace(pgxMonitor),
 	)
-	if err != nil {
-		panic(err)
-	}
+	panicOnErr(err)
 	defer pgClient.Pool().Close()
 
-	redisClient, err := redis.NewClient(&goredis.Options{
-		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
-		Username: cfg.Redis.Username,
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
-	})
-	if err != nil {
-		panic(err)
-	}
+	redisClient, err := redis.NewClient(ctx,
+		fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		redis.WithCredential(cfg.Redis.Username, cfg.Redis.Password),
+		redis.WithDB(cfg.Redis.DB),
+	)
+	panicOnErr(err)
 	defer redisClient.Close()
+
+	err = redisClient.Instrument()
+	panicOnErr(err)
 
 	sessionStore := redis.NewStore(redisClient, "session:", &sessions.Options{
 		Path:     cfg.Session.CookiePath,
@@ -142,4 +131,10 @@ func main() {
 func initGob() {
 	gob.Register(&domain.User{})
 	gob.Register(&domain.Document{})
+}
+
+func panicOnErr(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
