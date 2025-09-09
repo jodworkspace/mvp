@@ -1,4 +1,4 @@
-package oauthuc
+package oauth
 
 import (
 	"context"
@@ -12,6 +12,12 @@ import (
 	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
 	"go.uber.org/zap"
 )
+
+type UseCase interface {
+	Provider() string
+	ExchangeToken(ctx context.Context, authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error)
+	GetUserInfo(ctx context.Context, link *domain.Link) (*domain.User, error)
+}
 
 type GoogleUseCase struct {
 	config     *config.GoogleOAuthConfig

@@ -12,25 +12,36 @@ import (
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	"gitlab.com/jodworkspace/mvp/internal/usecase/oauth"
-	useruc "gitlab.com/jodworkspace/mvp/internal/usecase/user"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/errorx"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
 	"go.uber.org/zap"
 )
 
+type OAuthManager interface {
+	ExchangeToken(ctx context.Context, provider, authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error)
+	GetUserInfo(ctx context.Context, provider string, link *domain.Link) (*domain.User, error)
+}
+
+type UserUC interface {
+	CreateUserWithLink(ctx context.Context, user *domain.User, link *domain.Link) error
+	GetUser(ctx context.Context, id string) (*domain.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
+	UpdateLink(ctx context.Context, link *domain.Link) error
+}
+
 type OAuthHandler struct {
 	cfg          *config.TokenConfig
 	sessionStore sessions.Store
-	userUC       *useruc.UseCase
-	oauthMng     *oauthuc.Manager
+	userUC       UserUC
+	oauthMng     OAuthUseCase
 	logger       *logger.ZapLogger
 }
 
 func NewOAuthHandler(
 	sessionStore sessions.Store,
-	userUC *useruc.UseCase,
-	oauthMng *oauthuc.Manager,
+	userUC UserUC,
+	oauthMng OAuthManager,
 	zl *logger.ZapLogger,
 ) *OAuthHandler {
 	return &OAuthHandler{

@@ -1,4 +1,4 @@
-package taskuc
+package task
 
 import (
 	"context"
@@ -9,12 +9,12 @@ import (
 	"time"
 )
 
-type taskUseCase struct {
+type UseCase struct {
 	taskRepo TaskRepository
 	logger   *logger.ZapLogger
 }
 
-func NewTaskUseCase(taskRepo TaskRepository, zl *logger.ZapLogger) TaskUseCase {
+func NewUseCase(taskRepo TaskRepository, zl *logger.ZapLogger) *UseCase {
 	return &taskUseCase{
 		taskRepo: taskRepo,
 		logger:   zl,

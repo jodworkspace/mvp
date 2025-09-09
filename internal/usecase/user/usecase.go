@@ -1,4 +1,4 @@
-package useruc
+package user
 
 import (
 	"context"
@@ -22,7 +22,7 @@ type UseCase struct {
 	logger    *logger.ZapLogger
 }
 
-func NewUserUseCase(
+func NewUseCase(
 	userRepo UserRepository,
 	federatedUserRepo LinkRepository,
 	txManager *postgresrepo.TransactionManager,

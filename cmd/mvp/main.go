@@ -16,8 +16,8 @@ import (
 	v1 "gitlab.com/jodworkspace/mvp/internal/handler/rest/v1"
 	postgresrepo "gitlab.com/jodworkspace/mvp/internal/repository/postgres"
 	"gitlab.com/jodworkspace/mvp/internal/usecase/oauth"
-	taskuc "gitlab.com/jodworkspace/mvp/internal/usecase/task"
-	useruc "gitlab.com/jodworkspace/mvp/internal/usecase/user"
+	"gitlab.com/jodworkspace/mvp/internal/usecase/task"
+	"gitlab.com/jodworkspace/mvp/internal/usecase/user"
 	"gitlab.com/jodworkspace/mvp/pkg/db/postgres"
 	"gitlab.com/jodworkspace/mvp/pkg/db/redis"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
@@ -100,13 +100,13 @@ func main() {
 
 			// Tasks
 			taskRepository := postgresrepo.NewTaskRepository(pgClient)
-			taskUC := taskuc.NewTaskUseCase(taskRepository, zapLogger)
+			taskUC := task.NewUseCase(taskRepository, zapLogger)
 			taskHandler := v1.NewTaskHandler(taskUC, zapLogger)
 
 			// Users
 			userRepository := postgresrepo.NewUserRepository(pgClient)
 			linkRepository := postgresrepo.NewLinkRepository(pgClient)
-			userUC := useruc.NewUserUseCase(userRepository, linkRepository, transactionManager, aead, zapLogger)
+			userUC := user.NewUseCase(userRepository, linkRepository, transactionManager, aead, zapLogger)
 
 			// OAuth
 			googleUC := oauthuc.NewGoogleUseCase(cfg.GoogleOAuth, httpClient, zapLogger)
