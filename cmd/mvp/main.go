@@ -5,7 +5,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 
 	"github.com/gorilla/sessions"
@@ -14,7 +13,7 @@ import (
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	"gitlab.com/jodworkspace/mvp/internal/handler/rest"
 	v1 "gitlab.com/jodworkspace/mvp/internal/handler/rest/v1"
-	postgresrepo "gitlab.com/jodworkspace/mvp/internal/repository/postgres"
+	pgrepo "gitlab.com/jodworkspace/mvp/internal/repository/postgres"
 	"gitlab.com/jodworkspace/mvp/internal/usecase/oauth"
 	"gitlab.com/jodworkspace/mvp/internal/usecase/task"
 	"gitlab.com/jodworkspace/mvp/internal/usecase/user"
@@ -90,27 +89,22 @@ func main() {
 		Name:  "Jod",
 		Usage: "MVP Server",
 		Action: func(c *cli.Context) error {
-			// Instrumented clients
-			httpClient := http.Client{
-				Transport: httpMonitor.TransportWithTracing(),
-			}
-
 			// DB Transaction
-			transactionManager := postgresrepo.NewTransactionManager(pgClient)
+			transactionManager := pgrepo.NewTransactionManager(pgClient)
 
 			// Tasks
-			taskRepository := postgresrepo.NewTaskRepository(pgClient)
+			taskRepository := pgrepo.NewTaskRepository(pgClient)
 			taskUC := task.NewUseCase(taskRepository, zapLogger)
 			taskHandler := v1.NewTaskHandler(taskUC, zapLogger)
 
 			// Users
-			userRepository := postgresrepo.NewUserRepository(pgClient)
-			linkRepository := postgresrepo.NewLinkRepository(pgClient)
+			userRepository := pgrepo.NewUserRepository(pgClient)
+			linkRepository := pgrepo.NewLinkRepository(pgClient)
 			userUC := user.NewUseCase(userRepository, linkRepository, transactionManager, aead, zapLogger)
 
 			// OAuth
-			googleUC := oauthuc.NewGoogleUseCase(cfg.GoogleOAuth, httpClient, zapLogger)
-			oauthMng := oauthuc.NewManager(cfg.Token, zapLogger)
+			googleUC := oauth.NewGoogleUseCase(cfg.GoogleOAuth, zapLogger)
+			oauthMng := oauth.NewManager(cfg.Token, zapLogger)
 			oauthMng.RegisterOAuthProvider(googleUC)
 			oauthHandler := v1.NewOAuthHandler(sessionStore, userUC, oauthMng, zapLogger)
 

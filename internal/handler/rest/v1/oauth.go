@@ -11,7 +11,6 @@ import (
 	"github.com/gorilla/sessions"
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
-	"gitlab.com/jodworkspace/mvp/internal/usecase/oauth"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/errorx"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
@@ -34,7 +33,7 @@ type OAuthHandler struct {
 	cfg          *config.TokenConfig
 	sessionStore sessions.Store
 	userUC       UserUC
-	oauthMng     OAuthUseCase
+	oauthMng     OAuthManager
 	logger       *logger.ZapLogger
 }
 

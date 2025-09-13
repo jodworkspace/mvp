@@ -165,7 +165,7 @@ func (t *tracingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	return resp, err
 }
 
-func (h *Monitor) TransportWithTracing() http.RoundTripper {
+func TransportWithTracing() http.RoundTripper {
 	return &tracingTransport{
 		transport: http.DefaultTransport,
 	}

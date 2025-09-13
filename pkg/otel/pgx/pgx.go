@@ -2,6 +2,7 @@ package otelpgx
 
 import (
 	"context"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"go.opentelemetry.io/otel"
@@ -102,7 +103,7 @@ func (m *Monitor) TraceQueryStart(ctx context.Context, conn *pgx.Conn, data pgx.
 	tracer := otel.Tracer(tracerName)
 
 	operation := opFromSQL(data.SQL)
-	ctx, span := tracer.Start(ctx, operation,
+	ctx, span := tracer.Start(ctx, strings.ToLower(operation),
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
 			semconv.DBSystemNamePostgreSQL,
@@ -141,5 +142,5 @@ func opFromSQL(sql string) string {
 			return "DELETE"
 		}
 	}
-	return "OTHER"
+	return "PGX_UNKNOWN"
 }

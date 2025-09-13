@@ -53,7 +53,7 @@ func (u *UseCase) ExistsByEmail(ctx context.Context, email string) (bool, error)
 }
 
 func (u *UseCase) CreateUserWithLink(ctx context.Context, user *domain.User, link *domain.Link) error {
-	return u.txManager.WithTransaction(ctx, func(ctx context.Context, tx pgx.Tx) error {
+	return u.txManager.WithTransaction(ctx, pgx.ReadCommitted, func(ctx context.Context, tx pgx.Tx) error {
 		err := u.userRepo.Insert(ctx, user, tx)
 		if err != nil {
 			return err

@@ -1,1 +1,1 @@
-package postgresrepo
+package postgres

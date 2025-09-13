@@ -2,11 +2,12 @@ package task
 
 import (
 	"context"
+	"time"
+
 	"github.com/google/uuid"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
 	"go.uber.org/zap"
-	"time"
 )
 
 type UseCase struct {
@@ -15,12 +16,12 @@ type UseCase struct {
 }
 
 func NewUseCase(taskRepo TaskRepository, zl *logger.ZapLogger) *UseCase {
-	return &taskUseCase{
+	return &UseCase{
 		taskRepo: taskRepo,
 		logger:   zl,
 	}
 }
-func (u *taskUseCase) Count(ctx context.Context, filter *domain.Filter) (int64, error) {
+func (u *UseCase) Count(ctx context.Context, filter *domain.Filter) (int64, error) {
 	count, err := u.taskRepo.Count(ctx, filter)
 	if err != nil {
 		u.logger.Error("taskUseCase - taskRepo.Count", zap.Error(err))
@@ -30,7 +31,7 @@ func (u *taskUseCase) Count(ctx context.Context, filter *domain.Filter) (int64, 
 	return count, nil
 }
 
-func (u *taskUseCase) List(ctx context.Context, filter *domain.Filter) ([]*domain.Task, error) {
+func (u *UseCase) List(ctx context.Context, filter *domain.Filter) ([]*domain.Task, error) {
 	tasks, err := u.taskRepo.List(ctx, filter)
 	if err != nil {
 		u.logger.Error(
@@ -44,7 +45,7 @@ func (u *taskUseCase) List(ctx context.Context, filter *domain.Filter) ([]*domai
 	return tasks, nil
 }
 
-func (u *taskUseCase) Create(ctx context.Context, task *domain.Task) error {
+func (u *UseCase) Create(ctx context.Context, task *domain.Task) error {
 	task.ID = uuid.NewString()
 	task.IsCompleted = false
 	task.CreatedAt = time.Now()
@@ -63,15 +64,15 @@ func (u *taskUseCase) Create(ctx context.Context, task *domain.Task) error {
 	return nil
 }
 
-func (u *taskUseCase) Get(ctx context.Context, id string) (*domain.Task, error) {
+func (u *UseCase) Get(ctx context.Context, id string) (*domain.Task, error) {
 	return nil, nil
 }
 
-func (u *taskUseCase) Update(ctx context.Context, task *domain.Task) error {
+func (u *UseCase) Update(ctx context.Context, task *domain.Task) error {
 	return nil
 }
 
-func (u *taskUseCase) Delete(ctx context.Context, id string) error {
+func (u *UseCase) Delete(ctx context.Context, id string) error {
 	err := u.taskRepo.Delete(ctx, id)
 	if err != nil {
 		u.logger.Error(

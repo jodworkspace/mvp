@@ -1,4 +1,4 @@
-package postgresrepo
+package postgres
 
 import (
 	"context"
@@ -17,8 +17,12 @@ func NewTransactionManager(pgc postgres.Client) *TransactionManager {
 	}
 }
 
-func (tm *TransactionManager) WithTransaction(ctx context.Context, txFunc func(ctx context.Context, tx pgx.Tx) error) error {
-	tx, err := tm.client.Pool().Begin(ctx)
+type Statement func(ctx context.Context, tx pgx.Tx) error
+
+func (tm *TransactionManager) WithTransaction(ctx context.Context, isoLevel pgx.TxIsoLevel, txFunc Statement) error {
+	tx, err := tm.client.Pool().BeginTx(ctx, pgx.TxOptions{
+		IsoLevel: isoLevel,
+	})
 	if err != nil {
 		return err
 	}
