@@ -6,15 +6,9 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type PoolMetrics interface {
-	Stat() *pgxpool.Stat
-}
-
 type Pool interface {
-	PoolMetrics
 	Ping(context.Context) error
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row

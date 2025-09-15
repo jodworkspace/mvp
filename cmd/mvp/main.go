@@ -14,6 +14,7 @@ import (
 	"gitlab.com/jodworkspace/mvp/internal/handler/rest"
 	v1 "gitlab.com/jodworkspace/mvp/internal/handler/rest/v1"
 	pgrepo "gitlab.com/jodworkspace/mvp/internal/repository/postgres"
+	"gitlab.com/jodworkspace/mvp/internal/usecase/document"
 	"gitlab.com/jodworkspace/mvp/internal/usecase/oauth"
 	"gitlab.com/jodworkspace/mvp/internal/usecase/task"
 	"gitlab.com/jodworkspace/mvp/internal/usecase/user"
@@ -108,8 +109,20 @@ func main() {
 			oauthMng.RegisterOAuthProvider(googleUC)
 			oauthHandler := v1.NewOAuthHandler(sessionStore, userUC, oauthMng, zapLogger)
 
+			documentUC := document.NewUseCase()
+			wsHandler := v1.NewWSHandler(documentUC, zapLogger)
+
 			// Start server
-			srv := rest.NewServer(cfg, sessionStore, taskHandler, oauthHandler, zapLogger, otelManager, httpMonitor)
+			srv := rest.NewServer(
+				cfg,
+				sessionStore,
+				taskHandler,
+				oauthHandler,
+				wsHandler,
+				zapLogger,
+				otelManager,
+				httpMonitor,
+			)
 			srv.Run()
 
 			return nil

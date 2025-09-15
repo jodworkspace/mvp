@@ -29,6 +29,7 @@ type Server struct {
 	sessionStore   sessions.Store
 	taskHandler    *v1.TaskHandler
 	oauthHandler   *v1.OAuthHandler
+	wsHandler      *v1.WSHandler
 	logger         *logger.ZapLogger
 	monitorManager *otel.Manager
 	httpMonitor    *otelhttp.Monitor
@@ -39,6 +40,7 @@ func NewServer(
 	sessionStore sessions.Store,
 	taskHandler *v1.TaskHandler,
 	oauthHandler *v1.OAuthHandler,
+	wsHandler *v1.WSHandler,
 	logger *logger.ZapLogger,
 	monitorManager *otel.Manager,
 	httpMetrics *otelhttp.Monitor,
@@ -48,6 +50,7 @@ func NewServer(
 		sessionStore:   sessionStore,
 		taskHandler:    taskHandler,
 		oauthHandler:   oauthHandler,
+		wsHandler:      wsHandler,
 		logger:         logger,
 		monitorManager: monitorManager,
 		httpMonitor:    httpMetrics,
@@ -122,8 +125,9 @@ func (s *Server) RestMux() *chi.Mux {
 		MaxAge:           300,
 	}))
 
-	ir := s.instrumentedRouter(r)
+	r.Get("/ws", s.wsHandler.Handle)
 
+	ir := s.instrumentedRouter(r)
 	ir.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		data, _ := json.Marshal(httpx.JSON{"status": "ok"})
 		w.Header().Set("Content-Type", "application/json")
