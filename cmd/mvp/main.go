@@ -5,7 +5,9 @@ import (
 	"encoding/gob"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/sessions"
 	"github.com/urfave/cli/v2"
@@ -25,6 +27,7 @@ import (
 	otelhttp "gitlab.com/jodworkspace/mvp/pkg/otel/http"
 	otelpgx "gitlab.com/jodworkspace/mvp/pkg/otel/pgx"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/cipherx"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -86,6 +89,11 @@ func main() {
 		Secure:   cfg.Session.Secure,
 	})
 
+	httpClient := httpx.NewHTTPClient(http.Client{
+		Timeout:   10 * time.Second,
+		Transport: otelhttp.TransportWithTracing(),
+	})
+
 	app := &cli.App{
 		Name:  "Jod",
 		Usage: "MVP Server",
@@ -104,12 +112,13 @@ func main() {
 			userUC := user.NewUseCase(userRepository, linkRepository, transactionManager, aead, zapLogger)
 
 			// OAuth
-			googleUC := oauth.NewGoogleUseCase(cfg.GoogleOAuth, zapLogger)
+			googleUC := oauth.NewGoogleUseCase(cfg.GoogleOAuth, httpClient, zapLogger)
 			oauthMng := oauth.NewManager(cfg.Token, zapLogger)
 			oauthMng.RegisterOAuthProvider(googleUC)
 			oauthHandler := v1.NewOAuthHandler(sessionStore, userUC, oauthMng, zapLogger)
 
-			documentUC := document.NewUseCase()
+			documentUC := document.NewUseCase(httpClient, zapLogger)
+			documentHandler := v1.NewDocumentHandler(documentUC, zapLogger)
 			wsHandler := v1.NewWSHandler(documentUC, zapLogger)
 
 			// Start server
@@ -118,6 +127,7 @@ func main() {
 				sessionStore,
 				taskHandler,
 				oauthHandler,
+				documentHandler,
 				wsHandler,
 				zapLogger,
 				otelManager,

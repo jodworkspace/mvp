@@ -8,7 +8,6 @@ import (
 )
 
 type Client interface {
-	BuildURL(base string, query map[string]string) (string, error)
 	DoRequest(ctx context.Context, method, url string, body io.Reader, headers ...http.Header) (*http.Response, error)
 }
 
@@ -35,7 +34,7 @@ func (h *client) DoRequest(ctx context.Context, method, url string, body io.Read
 	return h.Do(req)
 }
 
-func (*client) BuildURL(base string, query map[string]string) (string, error) {
+func BuildURL(base string, query map[string]string) (string, error) {
 	b, err := url.Parse(base)
 	if err != nil {
 		return "", err

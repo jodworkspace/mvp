@@ -11,18 +11,18 @@ import (
 )
 
 type UseCase struct {
-	taskRepo TaskRepository
+	taskRepo Repository
 	logger   *logger.ZapLogger
 }
 
-func NewUseCase(taskRepo TaskRepository, zl *logger.ZapLogger) *UseCase {
+func NewUseCase(taskRepo Repository, zl *logger.ZapLogger) *UseCase {
 	return &UseCase{
 		taskRepo: taskRepo,
 		logger:   zl,
 	}
 }
-func (u *UseCase) Count(ctx context.Context, filter *domain.Filter) (int64, error) {
-	count, err := u.taskRepo.Count(ctx, filter)
+func (u *UseCase) Count(ctx context.Context, ownerID string) (int64, error) {
+	count, err := u.taskRepo.Count(ctx, ownerID)
 	if err != nil {
 		u.logger.Error("taskUseCase - taskRepo.Count", zap.Error(err))
 		return 0, err
@@ -31,12 +31,14 @@ func (u *UseCase) Count(ctx context.Context, filter *domain.Filter) (int64, erro
 	return count, nil
 }
 
-func (u *UseCase) List(ctx context.Context, filter *domain.Filter) ([]*domain.Task, error) {
-	tasks, err := u.taskRepo.List(ctx, filter)
+func (u *UseCase) List(ctx context.Context, page, pageSize uint64, ownerID string) ([]*domain.Task, error) {
+	tasks, err := u.taskRepo.List(ctx, page, pageSize, ownerID)
 	if err != nil {
 		u.logger.Error(
 			"taskUseCase - taskRepo.List",
-			zap.Any("filter", filter),
+			zap.Uint64("page", page),
+			zap.Uint64("page_size", pageSize),
+			zap.String("ownerID", ownerID),
 			zap.Error(err),
 		)
 		return nil, err

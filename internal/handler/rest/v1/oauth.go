@@ -124,10 +124,10 @@ func (h *OAuthHandler) ExchangeToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session.Values[domain.SessionKeyUserID] = existedUser.ID
-	session.Values[domain.SessionKeyIssuer] = provider
-	session.Values[domain.SessionKeyAccessToken] = link.AccessToken
-	session.Values[domain.SessionKeyRefreshToken] = link.RefreshToken
+	session.Values[domain.KeyUserID] = existedUser.ID
+	session.Values[domain.KeyIssuer] = provider
+	session.Values[domain.KeyAccessToken] = link.AccessToken
+	session.Values[domain.KeyRefreshToken] = link.RefreshToken
 
 	err = session.Save(r, w)
 	if err != nil {
@@ -167,7 +167,7 @@ func (h *OAuthHandler) onboardUser(ctx context.Context, provider string, user *d
 }
 
 func (h *OAuthHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(domain.SessionKeyUserID).(string)
+	userID := r.Context().Value(domain.KeyUserID).(string)
 
 	user, err := h.userUC.GetUser(r.Context(), userID)
 	if err != nil {
@@ -189,8 +189,8 @@ func (h *OAuthHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OAuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(domain.SessionKeyUserID).(string)
-	issuer := r.Context().Value(domain.SessionKeyIssuer).(string)
+	userID := r.Context().Value(domain.KeyUserID).(string)
+	issuer := r.Context().Value(domain.KeyIssuer).(string)
 
 	err := h.userUC.UpdateLink(r.Context(), &domain.Link{
 		UserID:                userID,

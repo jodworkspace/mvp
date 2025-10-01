@@ -15,7 +15,7 @@ import (
 )
 
 type UseCase struct {
-	userRepo  UserRepository
+	userRepo  Repository
 	linkRepo  LinkRepository
 	txManager *postgresrepo.TransactionManager
 	aead      *cipherx.AEAD
@@ -23,7 +23,7 @@ type UseCase struct {
 }
 
 func NewUseCase(
-	userRepo UserRepository,
+	userRepo Repository,
 	federatedUserRepo LinkRepository,
 	txManager *postgresrepo.TransactionManager,
 	aead *cipherx.AEAD,

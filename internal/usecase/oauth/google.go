@@ -3,13 +3,11 @@ package oauth
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"time"
 
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
-	otelhttp "gitlab.com/jodworkspace/mvp/pkg/otel/http"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
 	"go.uber.org/zap"
 )
@@ -20,16 +18,9 @@ type GoogleUseCase struct {
 	logger     *logger.ZapLogger
 }
 
-func NewGoogleUseCase(cfg *config.GoogleOAuthConfig, logger *logger.ZapLogger) *GoogleUseCase {
-	httpClient := http.Client{
-		Timeout:   10 * time.Second,
-		Transport: otelhttp.TransportWithTracing(),
-	}
-
-	client := httpx.NewHTTPClient(httpClient)
-
+func NewGoogleUseCase(cfg *config.GoogleOAuthConfig, httpClient httpx.Client, logger *logger.ZapLogger) *GoogleUseCase {
 	return &GoogleUseCase{
-		httpClient: client,
+		httpClient: httpClient,
 		config:     cfg,
 		logger:     logger,
 	}
@@ -40,7 +31,7 @@ func (u *GoogleUseCase) Provider() string {
 }
 
 func (u *GoogleUseCase) ExchangeToken(ctx context.Context, authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error) {
-	tokenURL, err := u.httpClient.BuildURL(u.config.TokenEndpoint, map[string]string{
+	tokenURL, err := httpx.BuildURL(u.config.TokenEndpoint, map[string]string{
 		"client_id":     u.config.ClientID,
 		"client_secret": u.config.ClientSecret,
 		"code":          authorizationCode,
@@ -84,7 +75,7 @@ func (u *GoogleUseCase) ExchangeToken(ctx context.Context, authorizationCode, co
 }
 
 func (u *GoogleUseCase) GetUserInfo(ctx context.Context, link *domain.Link) (*domain.User, error) {
-	userInfoURL, err := u.httpClient.BuildURL(u.config.UserInfoEndpoint, map[string]string{
+	userInfoURL, err := httpx.BuildURL(u.config.UserInfoEndpoint, map[string]string{
 		"access_token": link.AccessToken,
 	})
 	if err != nil {

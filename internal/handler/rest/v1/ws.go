@@ -5,14 +5,11 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
-	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"gitlab.com/jodworkspace/mvp/pkg/logger"
 	"go.uber.org/zap"
-	"golang.org/x/net/context"
 )
 
 type DocumentSyncer interface {
-	Update(ctx context.Context, id string, diffs []dmp.Diff)
 }
 
 type WSHandler struct {
@@ -45,17 +42,6 @@ type DiffMessage struct {
 	} `json:"diff"`
 }
 
-func (m DiffMessage) ToDiff() ([]dmp.Diff, error) {
-	var diffs []dmp.Diff
-	for _, d := range m.Diff {
-		diffs = append(diffs, dmp.Diff{
-			Text: d.Text,
-		})
-	}
-
-	return diffs, nil
-}
-
 func (h *WSHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	conn, connErr := h.upgrader.Upgrade(w, r, nil)
 	if connErr != nil {
@@ -78,13 +64,6 @@ func (h *WSHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		diffs, err := msg.ToDiff()
-		if err != nil {
-			h.logger.Error("msg.ToDiff", zap.Error(err))
-			continue
-		}
-
-		h.documentSyncer.Update(r.Context(), msg.DocumentID, diffs)
 		h.logger.Info("ws message", zap.Any("message", msg))
 	}
 }

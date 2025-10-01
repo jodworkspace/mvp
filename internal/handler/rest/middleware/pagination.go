@@ -24,24 +24,24 @@ func getUInt64(values url.Values, key string) uint64 {
 	return i
 }
 
-func Filter(next http.Handler) http.Handler {
+func Pagination(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		queryParams := r.URL.Query()
 
-		filter := &domain.Filter{
-			Page:       getUInt64(queryParams, "page"),
-			PageSize:   getUInt64(queryParams, "pageSize"),
-			Conditions: map[string]any{},
+		p := &domain.Pagination{
+			Page:      getUInt64(queryParams, "page"),
+			PageSize:  getUInt64(queryParams, "pageSize"),
+			PageToken: queryParams.Get("pageToken"),
 		}
 
-		if filter.Page < 1 {
-			filter.Page = config.DefaultPage
+		if p.Page < 1 {
+			p.Page = config.DefaultPage
 		}
-		if filter.PageSize < 1 {
-			filter.PageSize = config.DefaultPageSize
+		if p.PageSize < 1 {
+			p.PageSize = config.DefaultPageSize
 		}
 
-		ctx := context.WithValue(r.Context(), "filter", filter)
+		ctx := context.WithValue(r.Context(), domain.KeyPagination, p)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

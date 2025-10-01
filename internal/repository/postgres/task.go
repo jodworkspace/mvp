@@ -19,16 +19,12 @@ func NewTaskRepository(pgc postgres.Client) *TaskRepository {
 	}
 }
 
-func (r *TaskRepository) Count(ctx context.Context, filter *domain.Filter) (int64, error) {
-	builder := r.client.QueryBuilder().
+func (r *TaskRepository) Count(ctx context.Context, ownerID string) (int64, error) {
+	query, args, err := r.client.QueryBuilder().
 		Select("count(*)").
-		From(domain.TableTask)
-
-	for key, value := range filter.Conditions {
-		builder = builder.Where(squirrel.Eq{key: value})
-	}
-
-	query, args, err := builder.ToSql()
+		From(domain.TableTask).
+		Where(squirrel.Eq{domain.ColTaskOwnerID: ownerID}).
+		ToSql()
 	if err != nil {
 		return 0, err
 	}
@@ -42,19 +38,14 @@ func (r *TaskRepository) Count(ctx context.Context, filter *domain.Filter) (int6
 	return count, nil
 }
 
-func (r *TaskRepository) List(ctx context.Context, filter *domain.Filter) ([]*domain.Task, error) {
-	builder := r.client.QueryBuilder().
+func (r *TaskRepository) List(ctx context.Context, page, pageSize uint64, ownerID string) ([]*domain.Task, error) {
+	query, args, err := r.client.QueryBuilder().
 		Select(domain.TaskAllColumns...).
 		From(domain.TableTask).
-		Limit(filter.PageSize).
-		Offset((filter.Page - 1) * filter.PageSize).
-		OrderBy(fmt.Sprintf("%s DESC", domain.ColCreatedAt))
-
-	for key, value := range filter.Conditions {
-		builder = builder.Where(squirrel.Eq{key: value})
-	}
-
-	query, args, err := builder.ToSql()
+		Limit(pageSize).
+		Offset((page - 1) * pageSize).
+		Where(squirrel.Eq{domain.ColTaskOwnerID: ownerID}).
+		OrderBy(fmt.Sprintf("%s DESC", domain.ColCreatedAt)).ToSql()
 	if err != nil {
 		return nil, err
 	}

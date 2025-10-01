@@ -11,8 +11,8 @@ import (
 )
 
 type TaskUC interface {
-	Count(ctx context.Context, filter *domain.Filter) (int64, error)
-	List(ctx context.Context, filter *domain.Filter) ([]*domain.Task, error)
+	Count(ctx context.Context, ownerID string) (int64, error)
+	List(ctx context.Context, page, pageSize uint64, ownerID string) ([]*domain.Task, error)
 	Create(ctx context.Context, task *domain.Task) error
 	Get(ctx context.Context, id string) (*domain.Task, error)
 	Update(ctx context.Context, task *domain.Task) error
@@ -32,11 +32,10 @@ func NewTaskHandler(taskUC TaskUC, zl *logger.ZapLogger) *TaskHandler {
 }
 
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
-	filter, _ := r.Context().Value("filter").(*domain.Filter)
-	ownerID, _ := r.Context().Value("user_id").(string)
-	filter.Conditions[domain.ColTaskOwnerID] = ownerID
+	p, _ := r.Context().Value(domain.KeyPagination).(*domain.Pagination)
+	ownerID, _ := r.Context().Value(domain.KeyUserID).(string)
 
-	tasks, err := h.taskUC.List(r.Context(), filter)
+	tasks, err := h.taskUC.List(r.Context(), p.Page, p.PageSize, ownerID)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			Code: http.StatusInternalServerError,
@@ -44,7 +43,7 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	total, err := h.taskUC.Count(r.Context(), filter)
+	total, err := h.taskUC.Count(r.Context(), ownerID)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			Code: http.StatusInternalServerError,
@@ -53,7 +52,7 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = httpx.SuccessJSON(w, http.StatusOK, httpx.JSON{
-		"page":  filter.Page,
+		"page":  p.Page,
 		"total": total,
 		"tasks": tasks,
 	})

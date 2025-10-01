@@ -21,7 +21,7 @@ func SessionAuth(store sessions.Store, name string) Middleware {
 				return
 			}
 
-			userID, ok := session.Values[domain.SessionKeyUserID].(string)
+			userID, ok := session.Values[domain.KeyUserID].(string)
 			if !ok || userID == "" {
 				_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 					Code:    http.StatusUnauthorized,
@@ -31,8 +31,9 @@ func SessionAuth(store sessions.Store, name string) Middleware {
 			}
 
 			ctx := helper.ContextWithValues(r.Context(), map[string]any{
-				domain.SessionKeyUserID: userID,
-				domain.SessionKeyIssuer: session.Values[domain.SessionKeyIssuer],
+				domain.KeyUserID:      userID,
+				domain.KeyIssuer:      session.Values[domain.KeyIssuer],
+				domain.KeyAccessToken: session.Values[domain.KeyAccessToken],
 			})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

@@ -25,14 +25,15 @@ import (
 )
 
 type Server struct {
-	cfg            *config.Config
-	sessionStore   sessions.Store
-	taskHandler    *v1.TaskHandler
-	oauthHandler   *v1.OAuthHandler
-	wsHandler      *v1.WSHandler
-	logger         *logger.ZapLogger
-	monitorManager *otel.Manager
-	httpMonitor    *otelhttp.Monitor
+	cfg             *config.Config
+	sessionStore    sessions.Store
+	taskHandler     *v1.TaskHandler
+	oauthHandler    *v1.OAuthHandler
+	documentHandler *v1.DocumentHandler
+	wsHandler       *v1.WSHandler
+	logger          *logger.ZapLogger
+	monitorManager  *otel.Manager
+	httpMonitor     *otelhttp.Monitor
 }
 
 func NewServer(
@@ -40,20 +41,22 @@ func NewServer(
 	sessionStore sessions.Store,
 	taskHandler *v1.TaskHandler,
 	oauthHandler *v1.OAuthHandler,
+	documentHandler *v1.DocumentHandler,
 	wsHandler *v1.WSHandler,
 	logger *logger.ZapLogger,
 	monitorManager *otel.Manager,
 	httpMetrics *otelhttp.Monitor,
 ) *Server {
 	return &Server{
-		cfg:            cfg,
-		sessionStore:   sessionStore,
-		taskHandler:    taskHandler,
-		oauthHandler:   oauthHandler,
-		wsHandler:      wsHandler,
-		logger:         logger,
-		monitorManager: monitorManager,
-		httpMonitor:    httpMetrics,
+		cfg:             cfg,
+		sessionStore:    sessionStore,
+		taskHandler:     taskHandler,
+		oauthHandler:    oauthHandler,
+		documentHandler: documentHandler,
+		wsHandler:       wsHandler,
+		logger:          logger,
+		monitorManager:  monitorManager,
+		httpMonitor:     httpMetrics,
 	}
 }
 
@@ -101,11 +104,19 @@ func (s *Server) registerTaskRoutes(router chi.Router) {
 	router.Route("/api/v1/tasks", func(r chi.Router) {
 		ir := s.instrumentedRouter(r)
 		ir.Use(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName))
-		ir.With(middleware.Filter).Get("/", s.taskHandler.List)
+		ir.With(middleware.Pagination).Get("/", s.taskHandler.List)
 		ir.Post("/", s.taskHandler.Create)
 		ir.Get("/{id}", s.taskHandler.Get)
 		ir.Put("/{id}", s.taskHandler.Update)
 		ir.Delete("/{id}", s.taskHandler.Delete)
+	})
+}
+
+func (s *Server) registerDocumentRoutes(router chi.Router) {
+	router.Route("/api/v1/documents", func(r chi.Router) {
+		ir := s.instrumentedRouter(r)
+		ir.Use(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName))
+		ir.With(middleware.Pagination).Get("/", s.documentHandler.List)
 	})
 }
 
@@ -136,6 +147,7 @@ func (s *Server) RestMux() *chi.Mux {
 
 	s.registerOAuthRoutes(r)
 	s.registerTaskRoutes(r)
+	s.registerDocumentRoutes(r)
 
 	ir.NotFound(NotFoundRoute)
 	ir.MethodNotAllowed(NotFoundRoute)
