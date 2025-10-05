@@ -48,10 +48,11 @@ func (u *UseCase) List(ctx context.Context, page, pageSize uint64, ownerID strin
 }
 
 func (u *UseCase) Create(ctx context.Context, task *domain.Task) error {
+	now := time.Now().UTC()
 	task.ID = uuid.NewString()
 	task.IsCompleted = false
-	task.CreatedAt = time.Now()
-	task.UpdatedAt = time.Now()
+	task.CreatedAt = now
+	task.UpdatedAt = now
 
 	_, err := u.taskRepo.Create(ctx, task)
 	if err != nil {

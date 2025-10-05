@@ -24,14 +24,14 @@ type UseCase struct {
 
 func NewUseCase(
 	userRepo Repository,
-	federatedUserRepo LinkRepository,
+	linkRepo LinkRepository,
 	txManager *postgresrepo.TransactionManager,
 	aead *cipherx.AEAD,
 	logger *logger.ZapLogger,
 ) *UseCase {
 	return &UseCase{
 		userRepo:  userRepo,
-		linkRepo:  federatedUserRepo,
+		linkRepo:  linkRepo,
 		txManager: txManager,
 		aead:      aead,
 		logger:    logger,
@@ -53,6 +53,21 @@ func (u *UseCase) ExistsByEmail(ctx context.Context, email string) (bool, error)
 }
 
 func (u *UseCase) CreateUserWithLink(ctx context.Context, user *domain.User, link *domain.Link) error {
+	encryptedAccessToken, encryptErr := u.aead.Encrypt([]byte(link.AccessToken))
+	if encryptErr != nil {
+		u.logger.Error("CreateUserWithLink - u.aead.Encrypt", zap.Error(encryptErr))
+		return encryptErr
+	}
+
+	encryptedRefreshToken, encryptErr := u.aead.Encrypt([]byte(link.RefreshToken))
+	if encryptErr != nil {
+		u.logger.Error("CreateUserWithLink - u.aead.Encrypt", zap.Error(encryptErr))
+		return encryptErr
+	}
+
+	link.AccessToken = string(encryptedAccessToken)
+	link.RefreshToken = string(encryptedRefreshToken)
+
 	return u.txManager.WithTransaction(ctx, pgx.ReadCommitted, func(ctx context.Context, tx pgx.Tx) error {
 		err := u.userRepo.Insert(ctx, user, tx)
 		if err != nil {
@@ -137,11 +152,23 @@ func (u *UseCase) UpdateLink(ctx context.Context, link *domain.Link) error {
 		return err
 	}
 
-	linkDB.AccessToken = link.AccessToken
-	linkDB.RefreshToken = link.RefreshToken
+	encryptedAccessToken, encryptErr := u.aead.Encrypt([]byte(link.AccessToken))
+	if encryptErr != nil {
+		u.logger.Error("CreateUserWithLink - u.aead.Encrypt", zap.Error(encryptErr))
+		return encryptErr
+	}
+
+	encryptedRefreshToken, encryptErr := u.aead.Encrypt([]byte(link.RefreshToken))
+	if encryptErr != nil {
+		u.logger.Error("CreateUserWithLink - u.aead.Encrypt", zap.Error(encryptErr))
+		return encryptErr
+	}
+
+	link.AccessToken = string(encryptedAccessToken)
+	link.RefreshToken = string(encryptedRefreshToken)
 	linkDB.AccessTokenExpiredAt = link.AccessTokenExpiredAt
 	linkDB.RefreshTokenExpiredAt = link.RefreshTokenExpiredAt
-	linkDB.UpdatedAt = time.Now()
+	linkDB.UpdatedAt = time.Now().UTC()
 
 	err = u.linkRepo.Update(ctx, linkDB)
 	if err != nil {

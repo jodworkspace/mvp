@@ -52,26 +52,28 @@ func NewOAuthHandler(
 }
 
 func (h *OAuthHandler) ExchangeToken(w http.ResponseWriter, r *http.Request) {
-	var input struct {
+	var requestPayload struct {
 		Provider          string `json:"provider" validate:"required"`
 		AuthorizationCode string `json:"authorizationCode" validate:"required"`
 		CodeVerifier      string `json:"codeVerifier" validate:"required"`
 		RedirectURI       string `json:"redirectUri" validate:"required"`
 	}
 
-	err := BindWithValidation(r, &input)
+	err, details := BindWithValidation(r, &requestPayload)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			Code:    http.StatusBadRequest,
 			Message: err.Error(),
-			Details: httpx.JSON{"error": err.Error()},
+			Details: httpx.JSON{
+				"errors": details,
+			},
 		})
 		return
 	}
 
-	provider := strings.ToLower(input.Provider)
+	provider := strings.ToLower(requestPayload.Provider)
 
-	link, err := h.oauthMng.ExchangeToken(r.Context(), provider, input.AuthorizationCode, input.CodeVerifier, input.RedirectURI)
+	link, err := h.oauthMng.ExchangeToken(r.Context(), provider, requestPayload.AuthorizationCode, requestPayload.CodeVerifier, requestPayload.RedirectURI)
 	if err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			Code:    http.StatusInternalServerError,
@@ -100,17 +102,27 @@ func (h *OAuthHandler) ExchangeToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: encrypt tokens
 	if existedUser == nil {
 		existedUser, err = h.onboardUser(r.Context(), provider, user, link)
 		if err != nil {
-			h.logger.Error("OAuthHandler - ExchangeToken - CreateUserWithLink", zap.Error(err))
+			h.logger.Error("OAuthHandler - ExchangeToken - h.onboardUser", zap.Error(err))
 			_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 				Code:    http.StatusInternalServerError,
 				Message: err.Error(),
 			})
 			return
 		}
+	} else {
+		err = h.userUC.UpdateLink(r.Context(), link)
+		if err != nil {
+			h.logger.Error("OAuthHandler - ExchangeToken - h.userUC.UpdateLink", zap.Error(err))
+			_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+				Code:    http.StatusInternalServerError,
+				Message: err.Error(),
+			})
+			return
+		}
+
 	}
 
 	session, err := h.sessionStore.New(r, domain.SessionCookieName)
@@ -150,7 +162,7 @@ func (h *OAuthHandler) ExchangeToken(w http.ResponseWriter, r *http.Request) {
 func (h *OAuthHandler) onboardUser(ctx context.Context, provider string, user *domain.User, link *domain.Link) (*domain.User, error) {
 	user.ID = uuid.NewString()
 	user.Active = true
-	user.CreatedAt = time.Now()
+	user.CreatedAt = time.Now().UTC()
 	user.UpdatedAt = user.CreatedAt
 
 	link.UserID = user.ID
@@ -167,7 +179,7 @@ func (h *OAuthHandler) onboardUser(ctx context.Context, provider string, user *d
 }
 
 func (h *OAuthHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(domain.KeyUserID).(string)
+	userID, _ := r.Context().Value(domain.KeyUserID).(string)
 
 	user, err := h.userUC.GetUser(r.Context(), userID)
 	if err != nil {
@@ -192,13 +204,14 @@ func (h *OAuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(domain.KeyUserID).(string)
 	issuer := r.Context().Value(domain.KeyIssuer).(string)
 
+	now := time.Now().UTC()
 	err := h.userUC.UpdateLink(r.Context(), &domain.Link{
 		UserID:                userID,
 		Issuer:                issuer,
 		AccessToken:           "",
 		RefreshToken:          "",
-		AccessTokenExpiredAt:  time.Now(),
-		RefreshTokenExpiredAt: time.Now(),
+		AccessTokenExpiredAt:  now,
+		RefreshTokenExpiredAt: now,
 	})
 
 	if err != nil {

@@ -1,6 +1,7 @@
 package document
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -26,7 +27,7 @@ func NewUseCase(httpClient httpx.Client, zl *logger.ZapLogger) *UseCase {
 }
 
 func (u *UseCase) List(ctx context.Context, filter *domain.Pagination) ([]*domain.Document, error) {
-	url, err := httpx.BuildURL(config.GoogleDriveMetadataURI, map[string]string{
+	url, err := httpx.BuildURL(config.GoogleDriveMetaV3URI, map[string]string{
 		"pageSize":  strconv.FormatUint(filter.PageSize, 10),
 		"pageToken": filter.PageToken,
 		"corpora":   "user",
@@ -67,6 +68,41 @@ func (u *UseCase) List(ctx context.Context, filter *domain.Pagination) ([]*domai
 	return documents, nil
 }
 
+func (u *UseCase) Create(ctx context.Context, contents []byte, fileName string) (*domain.Document, error) {
+	url, err := httpx.BuildURL(config.GoogleDriveMetaV3URI, map[string]string{
+		"uploadType": "multipart",
+	})
+
+	payload := map[string]any{}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	accessToken, _ := ctx.Value(domain.KeyAccessToken).(string)
+	resp, err := u.httpClient.DoRequest(ctx, http.MethodPost, url, bytes.NewBuffer(jsonPayload), http.Header{
+		"Authorization": []string{fmt.Sprintf("Bearer %s", accessToken)},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= 400 {
+		return nil, domain.InternalServerError
+	}
+
+	return nil, nil
+}
+
+func (u *UseCase) Upload(ctx context.Context, contents []byte, fileName string) (*domain.Document, error) {
+	return nil, nil
+}
+
 func (u *UseCase) Get(ctx context.Context, id string) *domain.Document {
+	return nil
+}
+
+func (u *UseCase) Update(ctx context.Context, id string) *domain.Document {
 	return nil
 }

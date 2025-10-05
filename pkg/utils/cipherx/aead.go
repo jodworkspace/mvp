@@ -36,7 +36,7 @@ func MustNewAEAD(key []byte) *AEAD {
 	return aead
 }
 
-// Encrypt encrypts the plaintext and returns the ciphertext in Base64 format.
+// Encrypt encrypts the plaintext and returns the ciphertext in Standard Base64 format.
 func (a *AEAD) Encrypt(plaintext []byte, data ...[]byte) ([]byte, error) {
 	if len(plaintext) == 0 {
 		return []byte(""), nil
@@ -60,7 +60,7 @@ func (a *AEAD) Encrypt(plaintext []byte, data ...[]byte) ([]byte, error) {
 	return []byte(encodedCiphertext), nil
 }
 
-// Decrypt decrypts the Base64 encoded ciphertext and returns the plaintext.
+// Decrypt decrypts the Standard Base64 encoded ciphertext and returns the plaintext.
 func (a *AEAD) Decrypt(encodedCiphertext []byte, data ...[]byte) ([]byte, error) {
 	if len(encodedCiphertext) == 0 {
 		return []byte(""), nil

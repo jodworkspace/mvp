@@ -1,15 +1,11 @@
-package queue
+package mqx
 
 import (
 	"context"
-	amqp "github.com/rabbitmq/amqp091-go"
 	"sync"
-)
 
-type ExchangeConfig struct {
-	Name string
-	Type string
-}
+	amqp "github.com/rabbitmq/amqp091-go"
+)
 
 type ConsumerHandler func(ctx context.Context, body []byte) error
 

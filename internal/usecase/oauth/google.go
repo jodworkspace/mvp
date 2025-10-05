@@ -66,11 +66,12 @@ func (u *GoogleUseCase) ExchangeToken(ctx context.Context, authorizationCode, co
 		return nil, err
 	}
 
+	now := time.Now().UTC()
 	return &domain.Link{
 		AccessToken:           respData.AccessToken,
 		RefreshToken:          respData.RefreshToken,
-		AccessTokenExpiredAt:  time.Now().Add(time.Duration(respData.ExpiresIn) * time.Second),
-		RefreshTokenExpiredAt: time.Now().Add(time.Duration(respData.RefreshTokenExpiresIn) * time.Second),
+		AccessTokenExpiredAt:  now.Add(time.Duration(respData.ExpiresIn) * time.Second),
+		RefreshTokenExpiredAt: now.Add(time.Duration(respData.RefreshTokenExpiresIn) * time.Second),
 	}, nil
 }
 

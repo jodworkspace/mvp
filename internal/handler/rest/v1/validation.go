@@ -33,16 +33,30 @@ func validateStruct(s any) []ValidationError {
 	return validationErrors
 }
 
-func BindWithValidation(r *http.Request, input any) error {
-	err := httpx.ReadJSON(r, input)
+func BindWithValidation(r *http.Request, input any) (err error, details []string) {
+	err = httpx.ReadJSON(r, input)
 	if err != nil {
-		return err
+		return
 	}
 
 	errs := validateStruct(input)
 	if len(errs) > 0 {
-		return fmt.Errorf("invalid value for %s: expected %s, got %v", errs[0].Field, errs[0].Tag, errs[0].Value)
+		err = fmt.Errorf(
+			"invalid value for %s: expected %s, got %v",
+			errs[0].Field,
+			errs[0].Tag,
+			errs[0].Value,
+		)
 	}
 
-	return nil
+	for _, e := range errs {
+		details = append(details, fmt.Sprintf(
+			"invalid value for %s: expected %s, got %v",
+			e.Field,
+			e.Tag,
+			e.Value,
+		))
+	}
+
+	return
 }

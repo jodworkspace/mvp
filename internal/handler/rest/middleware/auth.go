@@ -5,6 +5,7 @@ import (
 
 	"github.com/gorilla/sessions"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/cipherx"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/helper"
 	"gitlab.com/jodworkspace/mvp/pkg/utils/httpx"
 )
@@ -35,6 +36,36 @@ func SessionAuth(store sessions.Store, name string) Middleware {
 				domain.KeyIssuer:      session.Values[domain.KeyIssuer],
 				domain.KeyAccessToken: session.Values[domain.KeyAccessToken],
 			})
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func UseToken(aead *cipherx.AEAD) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			encryptedAccessToken, ok := r.Context().Value(domain.KeyAccessToken).(string)
+			if !ok {
+				_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+					Code:    http.StatusInternalServerError,
+					Message: "google token not found",
+				})
+				return
+			}
+
+			accessToken, err := aead.Decrypt([]byte(encryptedAccessToken))
+			if err != nil {
+				_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+					Code:    http.StatusInternalServerError,
+					Message: err.Error(),
+				})
+				return
+			}
+
+			ctx := helper.ContextWithValues(r.Context(), map[string]any{
+				domain.KeyAccessToken: accessToken,
+			})
+
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

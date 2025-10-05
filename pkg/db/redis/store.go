@@ -110,7 +110,6 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter, session *sessions.S
 		Name:     session.Name(),
 		Path:     session.Options.Path,
 		MaxAge:   session.Options.MaxAge,
-		Expires:  time.Now().Add(exp),
 		HttpOnly: session.Options.HttpOnly,
 	})
 

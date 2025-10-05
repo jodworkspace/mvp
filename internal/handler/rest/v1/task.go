@@ -66,10 +66,13 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		DueDate   string `json:"dueDate" `
 	}
 
-	if err := BindWithValidation(r, &input); err != nil {
+	if err, details := BindWithValidation(r, &input); err != nil {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			Code:    http.StatusBadRequest,
 			Message: err.Error(),
+			Details: httpx.JSON{
+				"errors": details,
+			},
 		})
 		return
 	}
