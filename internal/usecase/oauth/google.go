@@ -41,13 +41,13 @@ func (u *GoogleUseCase) ExchangeToken(ctx context.Context, authorizationCode, co
 	})
 
 	if err != nil {
-		u.logger.Error("GoogleUseCase - ExchangeToken - httpx.BuildURL", zap.Error(err))
+		u.logger.Error("GoogleUseCase - VerifyUser - httpx.BuildURL", zap.Error(err))
 		return nil, err
 	}
 
 	resp, err := u.httpClient.DoRequest(ctx, "POST", tokenURL, nil)
 	if err != nil {
-		u.logger.Error("GoogleUseCase - ExchangeToken - httpClient.DoRequest", zap.Error(err))
+		u.logger.Error("GoogleUseCase - VerifyUser - httpClient.DoRequest", zap.Error(err))
 		return nil, err
 	}
 
@@ -62,7 +62,7 @@ func (u *GoogleUseCase) ExchangeToken(ctx context.Context, authorizationCode, co
 	}
 	err = json.NewDecoder(resp.Body).Decode(&respData)
 	if err != nil {
-		u.logger.Error("GoogleUseCase - ExchangeToken - json.NewDecoder.Decode", zap.Error(err))
+		u.logger.Error("GoogleUseCase - VerifyUser - json.NewDecoder.Decode", zap.Error(err))
 		return nil, err
 	}
 
@@ -75,19 +75,19 @@ func (u *GoogleUseCase) ExchangeToken(ctx context.Context, authorizationCode, co
 	}, nil
 }
 
-func (u *GoogleUseCase) GetUserInfo(ctx context.Context, link *domain.Link) (*domain.User, error) {
+func (u *GoogleUseCase) GetUserInfo(ctx context.Context, accessToken string) (*domain.User, string, error) {
 	userInfoURL, err := httpx.BuildURL(u.config.UserInfoEndpoint, map[string]string{
-		"access_token": link.AccessToken,
+		"access_token": accessToken,
 	})
 	if err != nil {
 		u.logger.Error("GoogleUseCase - httpx.BuildURL", zap.Error(err))
-		return nil, err
+		return nil, "", err
 	}
 
 	resp, err := u.httpClient.DoRequest(ctx, "GET", userInfoURL, nil)
 	if err != nil {
 		u.logger.Error("GoogleUseCase - httpClient.DoRequest", zap.Error(err))
-		return nil, err
+		return nil, "", err
 	}
 	defer resp.Body.Close()
 
@@ -100,7 +100,7 @@ func (u *GoogleUseCase) GetUserInfo(ctx context.Context, link *domain.Link) (*do
 	}
 	err = json.NewDecoder(resp.Body).Decode(&userinfo)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	user := &domain.User{
@@ -110,6 +110,5 @@ func (u *GoogleUseCase) GetUserInfo(ctx context.Context, link *domain.Link) (*do
 		AvatarURL:     userinfo.Picture,
 	}
 
-	link.ExternalID = userinfo.Sub
-	return user, nil
+	return user, userinfo.Sub, nil
 }

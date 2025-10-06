@@ -13,7 +13,7 @@ import (
 type UseCase interface {
 	Provider() string
 	ExchangeToken(ctx context.Context, authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error)
-	GetUserInfo(ctx context.Context, link *domain.Link) (*domain.User, error)
+	GetUserInfo(ctx context.Context, accessToken string) (*domain.User, string, error)
 }
 
 type Manager struct {
@@ -40,21 +40,38 @@ func (m *Manager) RegisterOAuthProvider(useCases ...UseCase) {
 	}
 }
 
-func (m *Manager) ExchangeToken(ctx context.Context, provider, authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error) {
+func (m *Manager) VerifyUser(ctx context.Context, provider, authCode, codeVerifier, redirectURI string) (*domain.Link, *domain.User, error) {
+	link, err := m.exchangeToken(ctx, provider, authCode, codeVerifier, redirectURI)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	user, externalID, err := m.getUserInfo(ctx, provider, link.AccessToken)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	link.ExternalID = externalID
+	link.Issuer = provider
+
+	return link, user, err
+}
+
+func (m *Manager) exchangeToken(ctx context.Context, provider, authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error) {
 	uc, exist := m.oauthUC[provider]
 	if !exist {
-		m.logger.Error("OAuthManager - ExchangeToken", zap.String("provider", provider))
+		m.logger.Error("OAuthManager - VerifyUser", zap.String("provider", provider))
 		return nil, errorx.ErrInvalidProvider
 	}
 
 	return uc.ExchangeToken(ctx, authorizationCode, codeVerifier, redirectURI)
 }
 
-func (m *Manager) GetUserInfo(ctx context.Context, provider string, link *domain.Link) (*domain.User, error) {
+func (m *Manager) getUserInfo(ctx context.Context, provider, accessToken string) (*domain.User, string, error) {
 	uc, exist := m.oauthUC[provider]
 	if !exist {
-		return nil, errorx.ErrInvalidProvider
+		return nil, "", errorx.ErrInvalidProvider
 	}
 
-	return uc.GetUserInfo(ctx, link)
+	return uc.GetUserInfo(ctx, accessToken)
 }

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
@@ -18,8 +17,7 @@ import (
 )
 
 type OAuthManager interface {
-	ExchangeToken(ctx context.Context, provider, authorizationCode, codeVerifier, redirectURI string) (*domain.Link, error)
-	GetUserInfo(ctx context.Context, provider string, link *domain.Link) (*domain.User, error)
+	VerifyUser(ctx context.Context, provider, authCode, codeVerifier, redirectURI string) (*domain.Link, *domain.User, error)
 }
 
 type UserUC interface {
@@ -72,71 +70,34 @@ func (h *OAuthHandler) ExchangeToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	provider := strings.ToLower(requestPayload.Provider)
-
-	link, err := h.oauthMng.ExchangeToken(r.Context(), provider, requestPayload.AuthorizationCode, requestPayload.CodeVerifier, requestPayload.RedirectURI)
+	link, user, err := h.verifyUser(r.Context(), provider,
+		requestPayload.AuthorizationCode,
+		requestPayload.CodeVerifier,
+		requestPayload.RedirectURI,
+	)
 	if err != nil {
+		h.logger.Error("OAuthHandler - VerifyUser - h.onboardUser", zap.Error(err))
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			Code:    http.StatusInternalServerError,
 			Message: err.Error(),
 		})
 		return
-	}
-
-	user, err := h.oauthMng.GetUserInfo(r.Context(), provider, link)
-	if err != nil {
-		h.logger.Error("OAuthHandler - ExchangeToken - GetUserInfo", zap.Error(err))
-		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
-		})
-		return
-	}
-
-	existedUser, err := h.userUC.GetUserByEmail(r.Context(), user.Email)
-	if err != nil && !errors.Is(err, errorx.ErrUserNotFound) {
-		h.logger.Error("OAuthHandler - ExchangeToken - GetUserByEmail", zap.String("email", user.Email), zap.Error(err))
-		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
-		})
-		return
-	}
-
-	if existedUser == nil {
-		existedUser, err = h.onboardUser(r.Context(), provider, user, link)
-		if err != nil {
-			h.logger.Error("OAuthHandler - ExchangeToken - h.onboardUser", zap.Error(err))
-			_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-				Code:    http.StatusInternalServerError,
-				Message: err.Error(),
-			})
-			return
-		}
-	} else {
-		err = h.userUC.UpdateLink(r.Context(), link)
-		if err != nil {
-			h.logger.Error("OAuthHandler - ExchangeToken - h.userUC.UpdateLink", zap.Error(err))
-			_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
-				Code:    http.StatusInternalServerError,
-				Message: err.Error(),
-			})
-			return
-		}
-
 	}
 
 	session, err := h.sessionStore.New(r, domain.SessionCookieName)
 	if err != nil {
-		h.logger.Error("OAuthHandler - ExchangeToken - NewSession", zap.Error(err))
+		h.logger.Error("OAuthHandler - VerifyUser - h.sessionStore.New", zap.Error(err))
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Failed to get session",
-			Details: httpx.JSON{"error": err.Error()},
+			Message: "failed to get session",
+			Details: httpx.JSON{
+				"error": err.Error(),
+			},
 		})
 		return
 	}
 
-	session.Values[domain.KeyUserID] = existedUser.ID
+	session.Values[domain.KeyUserID] = user.ID
 	session.Values[domain.KeyIssuer] = provider
 	session.Values[domain.KeyAccessToken] = link.AccessToken
 	session.Values[domain.KeyRefreshToken] = link.RefreshToken
@@ -154,28 +115,37 @@ func (h *OAuthHandler) ExchangeToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = httpx.SuccessJSON(w, http.StatusOK, httpx.JSON{
-		"user": existedUser,
+		"user": user,
 		"link": link,
 	})
 }
 
-func (h *OAuthHandler) onboardUser(ctx context.Context, provider string, user *domain.User, link *domain.Link) (*domain.User, error) {
-	user.ID = uuid.NewString()
-	user.Active = true
-	user.CreatedAt = time.Now().UTC()
-	user.UpdatedAt = user.CreatedAt
-
-	link.UserID = user.ID
-	link.Issuer = provider
-	link.CreatedAt = user.CreatedAt
-	link.UpdatedAt = user.CreatedAt
-
-	err := h.userUC.CreateUserWithLink(ctx, user, link)
+func (h *OAuthHandler) verifyUser(ctx context.Context, provider, authCode, codeVerifier, redirectURI string) (*domain.Link, *domain.User, error) {
+	link, user, err := h.oauthMng.VerifyUser(ctx, provider, authCode, codeVerifier, redirectURI)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return user, nil
+	existedUser, err := h.userUC.GetUserByEmail(ctx, user.Email)
+	if err != nil && !errors.Is(err, errorx.ErrUserNotFound) {
+		return nil, nil, err
+	}
+
+	if existedUser != nil {
+		err = h.userUC.UpdateLink(ctx, link)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return link, existedUser, err
+	}
+
+	err = h.userUC.CreateUserWithLink(ctx, user, link)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return link, user, err
 }
 
 func (h *OAuthHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
@@ -201,8 +171,8 @@ func (h *OAuthHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OAuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(domain.KeyUserID).(string)
-	issuer := r.Context().Value(domain.KeyIssuer).(string)
+	userID, _ := r.Context().Value(domain.KeyUserID).(string)
+	issuer, _ := r.Context().Value(domain.KeyIssuer).(string)
 
 	now := time.Now().UTC()
 	err := h.userUC.UpdateLink(r.Context(), &domain.Link{

@@ -32,16 +32,17 @@ func SessionAuth(store sessions.Store, name string) Middleware {
 			}
 
 			ctx := helper.ContextWithValues(r.Context(), map[string]any{
-				domain.KeyUserID:      userID,
-				domain.KeyIssuer:      session.Values[domain.KeyIssuer],
-				domain.KeyAccessToken: session.Values[domain.KeyAccessToken],
+				domain.KeyUserID:       userID,
+				domain.KeyIssuer:       session.Values[domain.KeyIssuer],
+				domain.KeyAccessToken:  session.Values[domain.KeyAccessToken],
+				domain.KeyRefreshToken: session.Values[domain.KeyRefreshToken],
 			})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-func UseToken(aead *cipherx.AEAD) Middleware {
+func DecryptToken(aead *cipherx.AEAD) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			encryptedAccessToken, ok := r.Context().Value(domain.KeyAccessToken).(string)

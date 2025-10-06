@@ -32,8 +32,21 @@ func NewTaskHandler(taskUC TaskUC, zl *logger.ZapLogger) *TaskHandler {
 }
 
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
-	p, _ := r.Context().Value(domain.KeyPagination).(*domain.Pagination)
-	ownerID, _ := r.Context().Value(domain.KeyUserID).(string)
+	p, ok := r.Context().Value(domain.KeyPagination).(*domain.Pagination)
+	if !ok {
+		p = &domain.Pagination{
+			Page:     1,
+			PageSize: 10,
+		}
+	}
+
+	ownerID, ok := r.Context().Value(domain.KeyUserID).(string)
+	if !ok {
+		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
+			Code: http.StatusInternalServerError,
+		})
+		return
+	}
 
 	tasks, err := h.taskUC.List(r.Context(), p.Page, p.PageSize, ownerID)
 	if err != nil {
@@ -126,10 +139,7 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	if taskID == "" {
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
 			Code:    http.StatusBadRequest,
-			Message: "invalid id",
-			Details: map[string]any{
-				"id": taskID,
-			},
+			Message: "task id can not be empty",
 		})
 		return
 	}

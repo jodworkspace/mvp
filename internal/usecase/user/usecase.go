@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
 	postgresrepo "gitlab.com/jodworkspace/mvp/internal/repository/postgres"
@@ -53,6 +54,17 @@ func (u *UseCase) ExistsByEmail(ctx context.Context, email string) (bool, error)
 }
 
 func (u *UseCase) CreateUserWithLink(ctx context.Context, user *domain.User, link *domain.Link) error {
+	now := time.Now().UTC()
+
+	user.ID = uuid.NewString()
+	user.Active = true
+	user.CreatedAt = now
+	user.UpdatedAt = now
+
+	link.UserID = user.ID
+	link.CreatedAt = now
+	link.UpdatedAt = now
+
 	encryptedAccessToken, encryptErr := u.aead.Encrypt([]byte(link.AccessToken))
 	if encryptErr != nil {
 		u.logger.Error("CreateUserWithLink - u.aead.Encrypt", zap.Error(encryptErr))

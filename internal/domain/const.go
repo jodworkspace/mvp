@@ -13,7 +13,6 @@ const (
 	KeyPagination     = "pagination"
 	KeyUserID         = "user_id"
 	KeyIssuer         = "issuer"
-	KeyDriverID       = "driver_id"
 	KeyAccessToken    = "access_token"
 	KeyRefreshToken   = "refresh_token"
 	SessionCookieName = "sid"
@@ -23,4 +22,5 @@ const (
 
 var (
 	InternalServerError = errors.New("internal server error")
+	InvalidSessionError = errors.New("invalid session")
 )

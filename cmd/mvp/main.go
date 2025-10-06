@@ -55,9 +55,6 @@ func main() {
 	pgxMonitor, err := otelpgx.NewMonitor()
 	panicOnErr(err)
 
-	httpMonitor, err := otelhttp.NewMonitor()
-	panicOnErr(err)
-
 	zapLogger := logger.MustNewLogger(cfg.Logger.Level)
 	aead := cipherx.MustNewAEAD([]byte(cfg.Server.AESKey))
 
@@ -124,6 +121,7 @@ func main() {
 			// Start server
 			srv := rest.NewServer(
 				cfg,
+				aead,
 				sessionStore,
 				taskHandler,
 				oauthHandler,
@@ -131,11 +129,9 @@ func main() {
 				wsHandler,
 				zapLogger,
 				otelManager,
-				httpMonitor,
 			)
-			srv.Run()
 
-			return nil
+			return srv.Run()
 		},
 	}
 

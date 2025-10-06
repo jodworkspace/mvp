@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/sessions"
 	"gitlab.com/jodworkspace/mvp/pkg/otel"
 	otelhttp "gitlab.com/jodworkspace/mvp/pkg/otel/http"
+	"gitlab.com/jodworkspace/mvp/pkg/utils/cipherx"
 
 	"gitlab.com/jodworkspace/mvp/config"
 	"gitlab.com/jodworkspace/mvp/internal/domain"
@@ -26,6 +27,7 @@ import (
 
 type Server struct {
 	cfg             *config.Config
+	aead            *cipherx.AEAD
 	sessionStore    sessions.Store
 	taskHandler     *v1.TaskHandler
 	oauthHandler    *v1.OAuthHandler
@@ -33,11 +35,11 @@ type Server struct {
 	wsHandler       *v1.WSHandler
 	logger          *logger.ZapLogger
 	monitorManager  *otel.Manager
-	httpMonitor     *otelhttp.Monitor
 }
 
 func NewServer(
 	cfg *config.Config,
+	aead *cipherx.AEAD,
 	sessionStore sessions.Store,
 	taskHandler *v1.TaskHandler,
 	oauthHandler *v1.OAuthHandler,
@@ -45,10 +47,10 @@ func NewServer(
 	wsHandler *v1.WSHandler,
 	logger *logger.ZapLogger,
 	monitorManager *otel.Manager,
-	httpMetrics *otelhttp.Monitor,
 ) *Server {
 	return &Server{
 		cfg:             cfg,
+		aead:            aead,
 		sessionStore:    sessionStore,
 		taskHandler:     taskHandler,
 		oauthHandler:    oauthHandler,
@@ -56,22 +58,26 @@ func NewServer(
 		wsHandler:       wsHandler,
 		logger:          logger,
 		monitorManager:  monitorManager,
-		httpMonitor:     httpMetrics,
 	}
 }
 
-func (s *Server) Run() {
+func (s *Server) Run() error {
+	httpMonitor, err := otelhttp.NewMonitor()
+	if err != nil {
+		return err
+	}
+
 	addr := fmt.Sprintf("%s:%s", s.cfg.Server.Host, s.cfg.Server.Port)
 	srv := &http.Server{
 		Addr:           addr,
-		Handler:        s.RestMux(),
+		Handler:        s.RestMux(httpMonitor),
 		MaxHeaderBytes: 1 << 20,
 	}
 
 	errChan := make(chan error, 1)
 	go func() {
 		s.logger.Info("Server started on " + addr)
-		err := srv.ListenAndServe() // blocking call
+		err = srv.ListenAndServe() // blocking call
 		if err != nil {
 			errChan <- err
 		}
@@ -89,9 +95,9 @@ func (s *Server) Run() {
 	}
 }
 
-func (s *Server) registerOAuthRoutes(router chi.Router) {
+func (s *Server) registerOAuthRoutes(router chi.Router, m *otelhttp.Monitor) {
 	router.Route("/api/v1/oauth", func(r chi.Router) {
-		ir := s.instrumentedRouter(r)
+		ir := s.instrumentedRouter(r, m)
 		ir.Post("/token", s.oauthHandler.ExchangeToken)
 
 		irWithAuth := ir.With(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName))
@@ -100,9 +106,9 @@ func (s *Server) registerOAuthRoutes(router chi.Router) {
 	})
 }
 
-func (s *Server) registerTaskRoutes(router chi.Router) {
+func (s *Server) registerTaskRoutes(router chi.Router, m *otelhttp.Monitor) {
 	router.Route("/api/v1/tasks", func(r chi.Router) {
-		ir := s.instrumentedRouter(r)
+		ir := s.instrumentedRouter(r, m)
 		ir.Use(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName))
 		ir.With(middleware.Pagination).Get("/", s.taskHandler.List)
 		ir.Post("/", s.taskHandler.Create)
@@ -112,15 +118,16 @@ func (s *Server) registerTaskRoutes(router chi.Router) {
 	})
 }
 
-func (s *Server) registerDocumentRoutes(router chi.Router) {
+func (s *Server) registerDocumentRoutes(router chi.Router, m *otelhttp.Monitor) {
 	router.Route("/api/v1/documents", func(r chi.Router) {
-		ir := s.instrumentedRouter(r)
+		ir := s.instrumentedRouter(r, m)
 		ir.Use(middleware.SessionAuth(s.sessionStore, domain.SessionCookieName))
+		ir.Use(middleware.DecryptToken(s.aead))
 		ir.With(middleware.Pagination).Get("/", s.documentHandler.List)
 	})
 }
 
-func (s *Server) RestMux() *chi.Mux {
+func (s *Server) RestMux(m *otelhttp.Monitor) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(chimiddleware.RequestID)
@@ -137,17 +144,18 @@ func (s *Server) RestMux() *chi.Mux {
 	}))
 
 	r.Get("/ws", s.wsHandler.Handle)
+	r.Handle("/metrics", s.monitorManager.PrometheusHandler())
 
-	ir := s.instrumentedRouter(r)
+	ir := s.instrumentedRouter(r, m)
 	ir.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		data, _ := json.Marshal(httpx.JSON{"status": "ok"})
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(data)
 	})
 
-	s.registerOAuthRoutes(r)
-	s.registerTaskRoutes(r)
-	s.registerDocumentRoutes(r)
+	s.registerOAuthRoutes(r, m)
+	s.registerTaskRoutes(r, m)
+	s.registerDocumentRoutes(r, m)
 
 	ir.NotFound(NotFoundRoute)
 	ir.MethodNotAllowed(NotFoundRoute)
@@ -158,7 +166,7 @@ func NotFoundRoute(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "not found", http.StatusNotFound)
 }
 
-func (s *Server) instrumentedRouter(r chi.Router) chi.Router {
+func (s *Server) instrumentedRouter(r chi.Router, m *otelhttp.Monitor) chi.Router {
 	return r.With(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			routePattern := chi.RouteContext(r.Context()).RoutePattern()
@@ -166,7 +174,7 @@ func (s *Server) instrumentedRouter(r chi.Router) chi.Router {
 				routePattern = "unmatched"
 			}
 
-			s.httpMonitor.Handle(routePattern, next).ServeHTTP(w, r)
+			m.Handle(routePattern, next).ServeHTTP(w, r)
 		})
 	})
 }
