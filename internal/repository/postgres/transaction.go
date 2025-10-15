@@ -8,10 +8,10 @@ import (
 )
 
 type TransactionManager struct {
-	client postgres.Client
+	client postgres.DB
 }
 
-func NewTransactionManager(pgc postgres.Client) *TransactionManager {
+func NewTransactionManager(pgc postgres.DB) *TransactionManager {
 	return &TransactionManager{
 		client: pgc,
 	}

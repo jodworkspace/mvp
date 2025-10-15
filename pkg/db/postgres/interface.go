@@ -17,7 +17,7 @@ type Pool interface {
 	Close()
 }
 
-type Client interface {
+type DB interface {
 	Pool() Pool
 	QueryBuilder() squirrel.StatementBuilderType
 }

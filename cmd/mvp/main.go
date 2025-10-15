@@ -58,7 +58,7 @@ func main() {
 	zapLogger := logger.MustNewLogger(cfg.Logger.Level)
 	aead := cipherx.MustNewAEAD([]byte(cfg.Server.AESKey))
 
-	pgClient, err := postgres.NewPostgresConnection(
+	pgClient, err := postgres.NewPostgresDB(
 		cfg.Postgres.DSN(),
 		postgres.WithMaxConns(10),
 		postgres.WithMinConns(2),

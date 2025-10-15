@@ -4,17 +4,15 @@ import (
 	"context"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type client struct {
+type db struct {
 	pgxPool    *pgxpool.Pool
 	sqlBuilder squirrel.StatementBuilderType
 }
 
-func NewPostgresConnection(dsn string, options ...Option) (Client, error) {
+func NewPostgresDB(dsn string, options ...Option) (DB, error) {
 	dbConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, err
@@ -35,7 +33,7 @@ func NewPostgresConnection(dsn string, options ...Option) (Client, error) {
 		return nil, err
 	}
 
-	pgc := &client{
+	pgc := &db{
 		pgxPool:    pool,
 		sqlBuilder: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
 	}
@@ -43,38 +41,10 @@ func NewPostgresConnection(dsn string, options ...Option) (Client, error) {
 	return pgc, nil
 }
 
-func (c *client) Stat() *pgxpool.Stat {
-	return c.pgxPool.Stat()
-}
-
-func (c *client) Pool() Pool {
+func (c *db) Pool() Pool {
 	return c.pgxPool
 }
 
-func (c *client) QueryBuilder() squirrel.StatementBuilderType {
+func (c *db) QueryBuilder() squirrel.StatementBuilderType {
 	return c.sqlBuilder
-}
-
-func (c *client) Close() {
-	c.pgxPool.Close()
-}
-
-func (c *client) Ping(ctx context.Context) error {
-	return c.pgxPool.Ping(ctx)
-}
-
-func (c *client) Begin(ctx context.Context) (pgx.Tx, error) {
-	return c.pgxPool.Begin(ctx)
-}
-
-func (c *client) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
-	return c.pgxPool.Query(ctx, sql, args...)
-}
-
-func (c *client) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
-	return c.pgxPool.QueryRow(ctx, sql, args...)
-}
-
-func (c *client) Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
-	return c.pgxPool.Exec(ctx, sql, args...)
 }

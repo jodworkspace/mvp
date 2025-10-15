@@ -10,10 +10,10 @@ import (
 )
 
 type TaskRepository struct {
-	client postgres.Client
+	client postgres.DB
 }
 
-func NewTaskRepository(pgc postgres.Client) *TaskRepository {
+func NewTaskRepository(pgc postgres.DB) *TaskRepository {
 	return &TaskRepository{
 		client: pgc,
 	}

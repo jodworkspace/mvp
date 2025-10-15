@@ -10,10 +10,10 @@ import (
 )
 
 type LinkRepository struct {
-	client postgres.Client
+	client postgres.DB
 }
 
-func NewLinkRepository(pgc postgres.Client) *LinkRepository {
+func NewLinkRepository(pgc postgres.DB) *LinkRepository {
 	return &LinkRepository{
 		client: pgc,
 	}
