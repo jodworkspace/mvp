@@ -1,10 +1,11 @@
 package jwtx
 
 import (
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"log"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type Claims struct {

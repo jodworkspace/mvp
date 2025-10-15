@@ -17,7 +17,10 @@ const (
 	KeyRefreshToken   = "refresh_token"
 	SessionCookieName = "sid"
 
-	FileTypeFolder = "application/vnd.google-apps.folder"
+	FileTypeFolder = "folder"
+	FileTypeFile   = "file"
+	MimeTypeFolder = "application/vnd.google-apps.folder"
+	MimeTypeFile   = "application/vnd.google-apps.file"
 )
 
 var (

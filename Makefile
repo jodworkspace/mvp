@@ -1,31 +1,41 @@
-ifneq (,$(wildcard ./.env))
-    include .env
-    export
-endif
+MIGRATIONS_FOLDER=migrations
+ENV_FILE=.env
 
-SCRIPT_FOLDER = migrations
-MIGRATION_FOLDER= migrations/postgres
-GOLANG_MIGRATE_VERSION = 4.18.3
-GOLANG_MIGRATE_LINUX_ZIP = migrate.linux-amd64.tar.gz
-POSTGRES_DSN = postgresql://$(POSTGRES_USERNAME):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DATABASE)?sslmode=disable
+install-goose:
+	go install github.com/pressly/goose/v3/cmd/goose@latest
+	ls "$(shell go env GOPATH)/bin/" | grep goose
 
-install-migrate-linux:
-	curl -OL https://github.com/golang-migrate/migrate/releases/download/v$(GOLANG_MIGRATE_VERSION)/$(GOLANG_MIGRATE_LINUX_ZIP)
-	sudo tar xvf $(GOLANG_MIGRATE_LINUX_ZIP) -C /usr/local/bin/ migrate
-	rm -f $(GOLANG_MIGRATE_LINUX_ZIP)
+migrate-sql:
+	goose -dir=$(MIGRATIONS_FOLDER)/postgres create $(NAME) sql
 
-install-migrate-windows:
-	# https://scoop.sh/
-	scoop install migrate
+migrate-go:
+	goose -dir=$(MIGRATIONS_FOLDER)/go create $(NAME) go
 
-.PHONY: migrate-create
-migrate-create:
-	$(SCRIPT_FOLDER)/migrate-db create $(name)
-
-.PHONY: migrate-up
 migrate-up:
-	$(SCRIPT_FOLDER)/migrate-db up
+	goose -env $(ENV_FILE) up
 
-.PHONY: migrate-down
 migrate-down:
-	$(SCRIPT_FOLDER)/migrate-db down
+	goose -env $(ENV_FILE) down
+
+env-example:
+	awk -F'=' 'BEGIN {OFS="="} \
+    	/^[[:space:]]*#/ {print; next} \
+    	/^[[:space:]]*$$/ {print ""; next} \
+    	NF>=1 {gsub(/^[[:space:]]+|[[:space:]]+$$/, "", $$1); print $$1"="}' .env > .env.example
+	echo ".env.example generated successfully."
+
+# Default Go version (can be overridden with `make install-go VERSION=1.25.0`)
+VERSION ?= 1.25.0
+GO_URL = https://go.dev/dl/go$(VERSION).linux-amd64.tar.gz
+
+install-go:
+	echo "Installing Go version $(VERSION)..."
+	cd ~
+	wget -q $(GO_URL) -O go$(VERSION).linux-amd64.tar.gz
+	sudo rm -rf /usr/local/go
+	sudo tar -C /usr/local -xzf go$(VERSION).linux-amd64.tar.gz
+	echo 'export PATH=$$PATH:/usr/local/go/bin' >> ~/.bashrc
+	source ~/.bashrc
+	/usr/local/go/bin/go version
+	rm go$(VERSION).linux-amd64.tar.gz
+	echo "Go $(VERSION) installation complete."

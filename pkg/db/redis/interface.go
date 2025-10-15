@@ -10,11 +10,11 @@ import (
 
 // Client is a subset of the go-redis Cmdable interface
 type Client interface {
-	SubsetCmdable
+	CmdableSubset
 	Instrument
 }
 
-type SubsetCmdable interface {
+type CmdableSubset interface {
 	Scan(ctx context.Context, cursor uint64, match string, count int64) *goredis.ScanCmd
 	Keys(ctx context.Context, pattern string) *goredis.StringSliceCmd
 	Exists(ctx context.Context, keys ...string) *goredis.IntCmd

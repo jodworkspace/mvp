@@ -132,6 +132,7 @@ func (h *OAuthHandler) verifyUser(ctx context.Context, provider, authCode, codeV
 	}
 
 	if existedUser != nil {
+		link.UserID = existedUser.ID
 		err = h.userUC.UpdateLink(ctx, link)
 		if err != nil {
 			return nil, nil, err

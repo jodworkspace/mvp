@@ -176,8 +176,8 @@ func (u *UseCase) UpdateLink(ctx context.Context, link *domain.Link) error {
 		return encryptErr
 	}
 
-	link.AccessToken = string(encryptedAccessToken)
-	link.RefreshToken = string(encryptedRefreshToken)
+	linkDB.AccessToken = string(encryptedAccessToken)
+	linkDB.RefreshToken = string(encryptedRefreshToken)
 	linkDB.AccessTokenExpiredAt = link.AccessTokenExpiredAt
 	linkDB.RefreshTokenExpiredAt = link.RefreshTokenExpiredAt
 	linkDB.UpdatedAt = time.Now().UTC()

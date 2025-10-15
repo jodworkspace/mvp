@@ -5,5 +5,5 @@ import (
 )
 
 type UserRepository struct {
-	redis.Client
+	redisClient redis.Client
 }

@@ -11,7 +11,7 @@ import (
 )
 
 type DocumentUC interface {
-	List(ctx context.Context, filter *domain.Pagination) ([]*domain.Document, error)
+	List(ctx context.Context, filter *domain.Pagination) ([]*domain.Document, string, error)
 }
 
 type DocumentHandler struct {
@@ -29,7 +29,7 @@ func NewDocumentHandler(documentUC DocumentUC, logger *logger.ZapLogger) *Docume
 func (h *DocumentHandler) List(w http.ResponseWriter, r *http.Request) {
 	filter, _ := r.Context().Value(domain.KeyPagination).(*domain.Pagination)
 
-	documents, err := h.documentUC.List(r.Context(), filter)
+	documents, nextPageToken, err := h.documentUC.List(r.Context(), filter)
 	if err != nil {
 		h.logger.Error("h.documentUC.List", zap.Error(err))
 		_ = httpx.ErrorJSON(w, httpx.ErrorResponse{
@@ -39,7 +39,8 @@ func (h *DocumentHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = httpx.SuccessJSON(w, http.StatusOK, httpx.JSON{
-		"page":      filter.Page,
-		"documents": documents,
+		"pageSize":      filter.PageSize,
+		"nextPageToken": nextPageToken,
+		"documents":     documents,
 	})
 }

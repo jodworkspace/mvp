@@ -64,7 +64,7 @@ func DecryptToken(aead *cipherx.AEAD) Middleware {
 			}
 
 			ctx := helper.ContextWithValues(r.Context(), map[string]any{
-				domain.KeyAccessToken: accessToken,
+				domain.KeyAccessToken: string(accessToken),
 			})
 
 			next.ServeHTTP(w, r.WithContext(ctx))

@@ -22,7 +22,6 @@ type Link struct {
 	Issuer                string    `json:"issuer"`     // PK
 	ExternalID            string    `json:"externalId"` // PK
 	UserID                string    `json:"userId"`
-	DriveID               string    `json:"driveId"`
 	AccessToken           string    `json:"-"`
 	RefreshToken          string    `json:"-"`
 	AccessTokenExpiredAt  time.Time `json:"-"`
@@ -44,7 +43,6 @@ const (
 
 	TableLinks               = "links"
 	ColUserID                = "user_id"
-	ColDriveID               = "drive_id"
 	ColIssuer                = "issuer"
 	ColExternalID            = "external_id"
 	ColAccessToken           = "access_token"
